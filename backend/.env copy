@@ -1,0 +1,4 @@
+PORT=5000
+
+# sql server
+DATABASE_URL="provider://host:port;database=name_db;user=username;password=password;encrypt=true;trustServerCertificate=true"

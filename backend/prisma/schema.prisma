@@ -1,0 +1,204 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider        = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlserver"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id_user       Int       @id @default(autoincrement())
+  username      String    @db.VarChar(255)
+  password      String    @db.VarChar(225)
+  role          String    
+  status_delete Int       @default(0)
+  created_at    DateTime  @default(now())
+  updated_at    DateTime  @updatedAt
+
+  // Relations
+  sampah             Sampah[]
+  activity_log       ActivityLog[]
+  pelanggaran_siswas PelanggaranSiswa[]
+
+  @@map("users")
+}
+
+model Sampah {
+  id_sampah   Int       @id @default(autoincrement())
+  id_user     Int
+  nama_tabel  String    @db.VarChar(255)
+  record_id   Int
+  delete_data String    @db.NVarChar(Max)
+  aksi        String    
+  delete_at   DateTime  @default(now())
+
+  // Relations
+  user User @relation(fields: [id_user], references: [id_user])
+
+  @@map("sampah")
+}
+
+model ActivityLog {
+  id_activity_log Int      @id @default(autoincrement())
+  id_user         Int
+  aksi            String   @db.VarChar(255)
+  nama_tabel      String   @db.VarChar(255)
+  record_id       Int
+  deskripsi       String   @db.VarChar(255)
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+
+  // Relations
+  user User @relation(fields: [id_user], references: [id_user])
+
+  @@map("activity_log")
+}
+
+model Siswa {
+  nis          Int      @id 
+  nama_siswa   String   @db.VarChar(25)
+  tgl_lahir    DateTime @db.Date
+  tempat_lahir String   @db.VarChar(20)
+  jk           String   
+  alamat       String   @db.NVarChar(Max)
+  status_aktif String   
+  status_hapus Int      @default(0)
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+
+  // Relations
+  riwayat_kelas      RiwayatKelas[]
+  pelanggaran_siswas PelanggaranSiswa[]
+
+  @@map("siswas")
+}
+
+model PelanggaranSiswa {
+  id_pelanggaran_siswa Int      @id @default(autoincrement())
+  tgl                  DateTime @db.Date
+  id_tahun_ajaran      Int
+  id_user              Int
+  nama_pelapor         String   @db.VarChar(255)
+  nis                  Int      
+  nama_siswa           String   @db.VarChar(255)
+  id_kelas             String   @db.VarChar(10)
+  nama_kelas           String   @db.VarChar(255)
+  id_kategori_pelanggaran Int   
+  id_pelanggaran       Int
+  nama_pelanggaran     String   @db.VarChar(255)
+  point                Int
+  catatan              String   @db.VarChar(255)
+  sanksi               String   @db.VarChar(255)
+  status_sanksi        String   
+  status_delete        Int      @default(0)
+  created_at           DateTime @default(now())
+  updated_at           DateTime @updatedAt
+
+  // Relations
+  tahun_ajaran         TahunAjaran         @relation(fields: [id_tahun_ajaran], references: [id_tahun_ajaran])
+  user                 User                @relation(fields: [id_user], references: [id_user], onUpdate: NoAction, onDelete: NoAction)
+  siswa                Siswa               @relation(fields: [nis], references: [nis], onUpdate: NoAction, onDelete: NoAction)
+  kelas                Kelas               @relation(fields: [id_kelas], references: [id_kelas], onUpdate: NoAction, onDelete: NoAction)
+  pelanggaran          Pelanggaran         @relation(fields: [id_pelanggaran], references: [id_pelanggaran], onUpdate: NoAction, onDelete: NoAction)
+  kategori_pelanggaran KategoriPelanggaran @relation(fields: [id_kategori_pelanggaran], references: [id_kategori_pelanggaran], onUpdate: NoAction, onDelete: NoAction)
+
+  @@map("pelanggaran_siswas")
+}
+
+model RiwayatKelas {
+  id_riwayat_kelas Int      @id @default(autoincrement())
+  id_tahun_ajaran  Int
+  kd_kelas         String   @db.VarChar(10) 
+  nis              Int      
+  status_delete    Int      @default(0)
+  created_at       DateTime @default(now())
+  updated_at       DateTime @updatedAt
+
+  // Relations
+  tahun_ajaran TahunAjaran @relation(fields: [id_tahun_ajaran], references: [id_tahun_ajaran])
+  kelas        Kelas       @relation(fields: [kd_kelas], references: [id_kelas], onUpdate: NoAction, onDelete: NoAction)
+  siswa        Siswa       @relation(fields: [nis], references: [nis], onUpdate: NoAction, onDelete: NoAction)
+
+  @@map("riwayat_kelas")
+}
+
+model TahunAjaran {
+  id_tahun_ajaran Int   @id @default(autoincrement())
+  nama            String   @db.VarChar(255)
+  status          String   
+  status_delete   Int      @default(0)
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+
+  // Relations
+  riwayat_kelas      RiwayatKelas[]
+  pelanggaran_siswas PelanggaranSiswa[]
+
+  @@map("tahun_ajaran")
+}
+
+model Kelas {
+  id_kelas      String   @id @db.VarChar(10)
+  id_jurusan    Int   
+  nama_kelas    String   @db.VarChar(15)
+  angkatan      Int
+  status_delete Int      @default(0)
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+
+  // Relations
+  jurusan            Jurusan @relation(fields: [id_jurusan], references: [id_jurusan])
+  riwayat_kelas      RiwayatKelas[]
+  pelanggaran_siswas PelanggaranSiswa[]
+
+  @@map("kelas")
+}
+
+model Jurusan {
+  id_jurusan   Int   @id @default(autoincrement())
+  nama_jurusan String   @db.VarChar(25)
+  status       String   
+  status_delete Int      @default(0)
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+
+  // Relations
+  kelas Kelas[]
+
+  @@map("jurusans")
+}
+
+model Pelanggaran {
+  id_pelanggaran          Int                 @id @default(autoincrement())
+  id_kategori_pelanggaran Int                 
+  nama_pelanggaran        String              @db.VarChar(255) 
+  tingkatan               String             
+  bobot_point             Int
+  status_delete           Int                 @default(0)
+  created_at              DateTime            @default(now())
+  updated_at              DateTime            @updatedAt
+
+  // Relations
+  kategori_pelanggaran KategoriPelanggaran @relation(fields: [id_kategori_pelanggaran], references: [id_kategori_pelanggaran])
+  pelanggaran_siswas   PelanggaranSiswa[]
+
+  @@map("pelanggarans")
+}
+
+model KategoriPelanggaran {
+  id_kategori_pelanggaran Int      @id @default(autoincrement())
+  nama                    String   @db.VarChar(255)
+  status_delete           Int      @default(0)
+  created_at              DateTime @default(now())
+  updated_at              DateTime @updatedAt
+
+  // Relations
+  pelanggaran        Pelanggaran[]
+  pelanggaran_siswas PelanggaranSiswa[]
+
+  @@map("kategori_pelanggaran")
+}
