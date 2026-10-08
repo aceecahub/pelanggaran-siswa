@@ -15,7 +15,7 @@ export const TapelRoutes = new Elysia({ prefix: "api/tapel" })
   .get("/", TapelController.getAll)
   .get("/:id_tahun_ajaran", TapelController.getById, { params: TapelParams })
   .post("/", TapelController.create, { body: TapelBody })
-  .put("/:id_tahun_ajaran", TapelController.update, {
+  .patch("/:id_tahun_ajaran", TapelController.update, {
     params: TapelParams,
     body: TapelBody,
   })

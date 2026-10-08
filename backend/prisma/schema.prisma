@@ -85,7 +85,7 @@ model PelanggaranSiswa {
   nama_pelapor         String   @db.VarChar(255)
   nis                  Int      
   nama_siswa           String   @db.VarChar(255)
-  id_kelas             String   @db.VarChar(10)
+  id_kelas             Int
   nama_kelas           String   @db.VarChar(255)
   id_kategori_pelanggaran Int   
   id_pelanggaran       Int
@@ -112,7 +112,7 @@ model PelanggaranSiswa {
 model RiwayatKelas {
   id_riwayat_kelas Int      @id @default(autoincrement())
   id_tahun_ajaran  Int
-  kd_kelas         String   @db.VarChar(10) 
+  id_kelas         Int
   nis              Int      
   status_delete    Int      @default(0)
   created_at       DateTime @default(now())
@@ -120,7 +120,7 @@ model RiwayatKelas {
 
   // Relations
   tahun_ajaran TahunAjaran @relation(fields: [id_tahun_ajaran], references: [id_tahun_ajaran])
-  kelas        Kelas       @relation(fields: [kd_kelas], references: [id_kelas], onUpdate: NoAction, onDelete: NoAction)
+  kelas        Kelas       @relation(fields: [id_kelas], references: [id_kelas], onUpdate: NoAction, onDelete: NoAction)
   siswa        Siswa       @relation(fields: [nis], references: [nis], onUpdate: NoAction, onDelete: NoAction)
 
   @@map("riwayat_kelas")
@@ -142,10 +142,9 @@ model TahunAjaran {
 }
 
 model Kelas {
-  id_kelas      String   @id @db.VarChar(10)
-  id_jurusan    Int   
+  id_kelas      Int   @id @default(autoincrement())
+  id_jurusan    String   @db.VarChar(10)   
   nama_kelas    String   @db.VarChar(15)
-  angkatan      Int
   status_delete Int      @default(0)
   created_at    DateTime @default(now())
   updated_at    DateTime @updatedAt
@@ -159,7 +158,7 @@ model Kelas {
 }
 
 model Jurusan {
-  id_jurusan   Int   @id @default(autoincrement())
+  id_jurusan   String   @id @db.VarChar(10)
   nama_jurusan String   @db.VarChar(25)
   status       String   
   status_delete Int      @default(0)

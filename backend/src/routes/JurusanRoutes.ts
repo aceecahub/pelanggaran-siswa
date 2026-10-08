@@ -2,10 +2,11 @@ import { Elysia, t } from "elysia"
 import { JurusanController } from "../controller/JurusanController"
 
 const jurusanParams= t.Object({
-    id_jurusan: t.Number()
+    id_jurusan: t.String()
 })
 
 const jurusanBody = t.Object({
+    id_jurusan: t.String(),
     nama_jurusan: t.String(),
     status_delete: t.Number()
 })

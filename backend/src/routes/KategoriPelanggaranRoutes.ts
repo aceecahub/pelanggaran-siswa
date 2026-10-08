@@ -20,7 +20,7 @@ export const KategoriPelanggaranRoutes = new Elysia({
   .post("/", KategoriPelanggaranController.create, {
     body: KategoriPelanggaranBody,
   })
-  .put("/:id_kategori_pelanggaran", KategoriPelanggaranController.update, {
+  .patch("/:id_kategori_pelanggaran", KategoriPelanggaranController.update, {
     params: KategoriPelanggaranParams,
     body: KategoriPelanggaranBody,
   })
