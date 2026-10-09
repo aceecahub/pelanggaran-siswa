@@ -21,7 +21,25 @@ const siswaBody = t.Object({
   alamat_ortu: t.String(),
   alamat: t.String(),
   status_aktif: t.String(),
-  status_delete: t.Number()
+  status_delete: t.Optional(t.Number())
+})
+
+const siswaUpdateBody = t.Object({
+  nama_siswa: t.Optional(t.String()),
+  tgl_lahir: t.Optional(t.String()),
+  tempat_lahir: t.Optional(t.String()),
+  jk: t.Optional(t.String()),
+  no_hp: t.Optional(t.String()),
+  agama: t.Optional(t.String()),
+  no_hp_ortu: t.Optional(t.String()),
+  nama_ayah: t.Optional(t.String()),
+  pekerjaan_ayah: t.Optional(t.String()),
+  nama_ibu: t.Optional(t.String()),
+  pekerjaan_ibu: t.Optional(t.String()),
+  alamat_ortu: t.Optional(t.String()),
+  alamat: t.Optional(t.String()),
+  status_aktif: t.Optional(t.String()),
+  status_delete: t.Optional(t.Number())
 })
 
 export const SiswaRoutes = new Elysia({ prefix: "api/siswa" })
@@ -30,7 +48,7 @@ export const SiswaRoutes = new Elysia({ prefix: "api/siswa" })
   .post("/", SiswaController.create, { body: siswaBody })
   .patch("/:nis", SiswaController.update, {
     params: siswaParams,
-    body: siswaBody,
+    body: siswaUpdateBody,
   })
   .delete("/:nis", SiswaController.delete, { params: siswaParams })
 

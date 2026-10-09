@@ -7,8 +7,14 @@ const TapelParams = t.Object({
 
 const TapelBody = t.Object({
   nama: t.String(),
-  status: t.String(),
-  status_delete: t.Number(),
+  status: t.Optional(t.String()),
+  status_delete: t.Optional(t.Number()),
+});
+
+const TapelUpdateBody = t.Object({
+  nama: t.Optional(t.String()),
+  status: t.Optional(t.String()),
+  status_delete: t.Optional(t.Number()),
 });
 
 export const TapelRoutes = new Elysia({ prefix: "api/tapel" })
@@ -17,7 +23,7 @@ export const TapelRoutes = new Elysia({ prefix: "api/tapel" })
   .post("/", TapelController.create, { body: TapelBody })
   .patch("/:id_tahun_ajaran", TapelController.update, {
     params: TapelParams,
-    body: TapelBody,
+    body: TapelUpdateBody,
   })
   .delete("/:id_tahun_ajaran", TapelController.delete, { params: TapelParams });
 

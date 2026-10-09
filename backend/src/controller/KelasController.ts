@@ -25,7 +25,14 @@ export const KelasController = {
           message: "ID kelas wajib diisi",
         }
       }
-      const kelas = await KelasService.getById(params.id_kelas)
+      const idNumber = Number(params.id_kelas)
+      if (isNaN(idNumber)) {
+        return {
+          status: 400,
+          message: "ID kelas tidak valid",
+        }
+      }
+      const kelas = await KelasService.getById(idNumber)
       if (!kelas) {
         return {
           status: 404,
@@ -94,48 +101,72 @@ export const KelasController = {
           message: "ID kelas wajib diisi",
         }
       }
-      const idJurusanInput = body?.id_jurusan?.trim()
-      const namaKelasInput = body?.nama_kelas?.trim()
-      const statusDeleteInput = body?.status_delete
-      if (
-        !idJurusanInput ||
-        !namaKelasInput ||
-        statusDeleteInput === undefined
-      ) {
+      const idNumber = Number(params.id_kelas)
+      if (isNaN(idNumber)) {
         return {
           status: 400,
-          message: "Semua field wajib diisi termasuk status_delete",
+          message: "ID kelas tidak valid",
         }
       }
-      const existingData = await KelasService.getById(params.id_kelas)
+      if (!body || Object.keys(body).length === 0) {
+        return {
+          status: 400,
+          message: "Minimal satu field harus diisi untuk diperbarui",
+        }
+      }
+
+      const existingData = await KelasService.getById(idNumber)
       if (!existingData) {
         return {
           status: 404,
           message: "Data kelas tidak ditemukan",
         }
       }
-      if (
-        namaKelasInput.toLowerCase() !== existingData.nama_kelas.toLowerCase()
-      ) {
-        const allKelas = await KelasService.getAll()
-        const isNameTaken = allKelas.some(
-          (k: any) =>
-            k.nama_kelas.toLowerCase() === namaKelasInput.toLowerCase() &&
-            k.id_kelas !== params.id_kelas,
-        )
-        if (isNameTaken) {
+
+      const dataToUpdate: any = {}
+      if (body.id_jurusan !== undefined) {
+        const idJurusanInput = body.id_jurusan.trim()
+        if (!idJurusanInput) {
           return {
-            status: 409,
-            message: `Nama kelas '${namaKelasInput}' sudah digunakan oleh data lain`,
+            status: 400,
+            message: "id_jurusan tidak boleh kosong",
           }
         }
+        dataToUpdate.id_jurusan = idJurusanInput
       }
-      const kelas = await KelasService.update(
-        params.id_kelas,
-        idJurusanInput,
-        namaKelasInput,
-        Number(statusDeleteInput),
-      )
+
+      if (body.nama_kelas !== undefined) {
+        const namaKelasInput = body.nama_kelas.trim()
+        if (!namaKelasInput) {
+          return {
+            status: 400,
+            message: "nama_kelas tidak boleh kosong",
+          }
+        }
+        if (
+          namaKelasInput.toLowerCase() !== existingData.nama_kelas.toLowerCase()
+        ) {
+          const allKelas = await KelasService.getAll()
+          const isNameTaken = allKelas.some(
+            (k: any) =>
+              k.nama_kelas.toLowerCase() === namaKelasInput.toLowerCase() &&
+              k.id_kelas !== idNumber,
+          )
+          if (isNameTaken) {
+            return {
+              status: 409,
+              message: `Nama kelas '${namaKelasInput}' sudah digunakan oleh data lain`,
+            }
+          }
+        }
+        dataToUpdate.nama_kelas = namaKelasInput
+      }
+
+      if (body.status_delete !== undefined) {
+        dataToUpdate.status_delete = Number(body.status_delete)
+      }
+
+      const kelas = await KelasService.update(idNumber, dataToUpdate)
       return {
         status: 200,
         message: "Data kelas berhasil diperbarui",
@@ -157,14 +188,21 @@ export const KelasController = {
           message: "ID kelas wajib diisi",
         }
       }
-      const existingData = await KelasService.getById(params.id_kelas)
+      const idNumber = Number(params.id_kelas)
+      if (isNaN(idNumber)) {
+        return {
+          status: 400,
+          message: "ID kelas tidak valid",
+        }
+      }
+      const existingData = await KelasService.getById(idNumber)
       if (!existingData) {
         return {
           status: 404,
           message: "Data kelas tidak ditemukan",
         }
       }
-      const kelas = await KelasService.delete(params.id_kelas)
+      const kelas = await KelasService.delete(idNumber)
       return {
         status: 200,
         message: "Data kelas berhasil dihapus",

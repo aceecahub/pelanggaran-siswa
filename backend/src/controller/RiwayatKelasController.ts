@@ -73,31 +73,29 @@ export const RiwayatKelasController = {
       if (!params?.id_riwayat_kelas)
         return { status: 400, message: "ID riwayat kelas wajib diisi" }
       const idParam = Number(params.id_riwayat_kelas)
-      const idTahunAjaranInput = body?.id_tahun_ajaran
-      const idKelasInput = body?.id_kelas
-      const nisInput = body?.nis
-      const statusDeleteInput = body?.status_delete
-      if (
-        idTahunAjaranInput === undefined ||
-        idKelasInput === undefined ||
-        nisInput === undefined ||
-        statusDeleteInput === undefined
-      ) {
+      if (isNaN(idParam))
+        return { status: 400, message: "ID riwayat kelas harus berupa angka" }
+
+      if (!body || Object.keys(body).length === 0) {
         return {
           status: 400,
-          message:
-            "id_tahun_ajaran, id_kelas, nis, dan status_delete wajib diisi",
+          message: "Minimal satu field harus diisi untuk diperbarui",
         }
       }
+
       const existingData = await RiwayatKelasService.getById(idParam)
       if (!existingData)
         return { status: 404, message: "Data riwayat kelas tidak ditemukan" }
+
+      const dataToUpdate: any = {}
+      if (body.id_tahun_ajaran !== undefined) dataToUpdate.id_tahun_ajaran = Number(body.id_tahun_ajaran)
+      if (body.id_kelas !== undefined) dataToUpdate.id_kelas = Number(body.id_kelas)
+      if (body.nis !== undefined) dataToUpdate.nis = Number(body.nis)
+      if (body.status_delete !== undefined) dataToUpdate.status_delete = Number(body.status_delete)
+
       const riwayatKelas = await RiwayatKelasService.update(
         idParam,
-        Number(idTahunAjaranInput),
-        Number(idKelasInput),
-        Number(nisInput),
-        Number(statusDeleteInput),
+        dataToUpdate,
       )
       return {
         status: 200,
@@ -117,9 +115,13 @@ export const RiwayatKelasController = {
       if (!params?.id_riwayat_kelas)
         return { status: 400, message: "ID riwayat kelas wajib diisi" }
       const idParam = Number(params.id_riwayat_kelas)
+      if (isNaN(idParam))
+        return { status: 400, message: "ID riwayat kelas harus berupa angka" }
+
       const existingData = await RiwayatKelasService.getById(idParam)
       if (!existingData)
         return { status: 404, message: "Data riwayat kelas tidak ditemukan" }
+
       const riwayatKelas = await RiwayatKelasService.delete(idParam)
       return {
         status: 200,

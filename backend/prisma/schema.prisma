@@ -12,7 +12,7 @@ datasource db {
 
 model User {
   id_user       Int       @id @default(autoincrement())
-  username      String    @db.VarChar(255)
+  username      String    @db.VarChar(255) @unique
   password      String    @db.VarChar(225)
   role          String    
   status_delete Int       @default(0)
@@ -150,7 +150,7 @@ model TahunAjaran {
 
 model Kelas {
   id_kelas      Int   @id @default(autoincrement())
-  id_jurusan    String   @db.VarChar(10)   
+  id_jurusan    Int
   nama_kelas    String   @db.VarChar(15)
   status_delete Int      @default(0)
   created_at    DateTime @default(now())
@@ -165,7 +165,7 @@ model Kelas {
 }
 
 model Jurusan {
-  id_jurusan   String   @id @db.VarChar(10)
+  id_jurusan   Int @id @default(autoincrement())
   nama_jurusan String   @db.VarChar(25)
   status       String   
   status_delete Int      @default(0)

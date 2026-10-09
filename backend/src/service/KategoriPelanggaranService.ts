@@ -2,13 +2,18 @@ import prisma from "../../prisma/client";
 
 export const KategoriPelanggaranService = {
   getAll: async () => {
-    return await prisma.kategoriPelanggaran.findMany();
+    return await prisma.kategoriPelanggaran.findMany({
+      where: {
+        status_delete: 0,
+      },
+    });
   },
 
   getById: async (id_kategori_pelanggaran: number) => {
-    return await prisma.kategoriPelanggaran.findUnique({
+    return await prisma.kategoriPelanggaran.findFirst({
       where: {
         id_kategori_pelanggaran: id_kategori_pelanggaran,
+        status_delete: 0,
       },
     });
   },
@@ -17,30 +22,33 @@ export const KategoriPelanggaranService = {
     return await prisma.kategoriPelanggaran.create({
       data: {
         nama: nama,
+        status_delete: 0,
       },
     });
   },
 
   update: async (
     id_kategori_pelanggaran: number,
-    nama: string,
-    status_delete: number,
+    data: {
+      nama?: string;
+      status_delete?: number;
+    },
   ) => {
     return await prisma.kategoriPelanggaran.update({
       where: {
         id_kategori_pelanggaran: id_kategori_pelanggaran,
       },
-      data: {
-        nama: nama,
-        status_delete: status_delete,
-      },
+      data,
     });
   },
 
   delete: async (id_kategori_pelanggaran: number) => {
-    return await prisma.kategoriPelanggaran.delete({
+    return await prisma.kategoriPelanggaran.update({
       where: {
         id_kategori_pelanggaran: id_kategori_pelanggaran,
+      },
+      data: {
+        status_delete: 1,
       },
     });
   },

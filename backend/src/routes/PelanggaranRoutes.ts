@@ -10,7 +10,15 @@ const pelanggaranBody = t.Object({
   nama_pelanggaran: t.String(),
   tingkatan: t.String(),
   bobot_point: t.Number(),
-  status_delete: t.Number(),
+  status_delete: t.Optional(t.Number()),
+})
+
+const pelanggaranUpdateBody = t.Object({
+  id_kategori_pelanggaran: t.Optional(t.Number()),
+  nama_pelanggaran: t.Optional(t.String()),
+  tingkatan: t.Optional(t.String()),
+  bobot_point: t.Optional(t.Number()),
+  status_delete: t.Optional(t.Number()),
 })
 
 export const PelanggaranRoutes = new Elysia({ prefix: "api/pelanggaran" })
@@ -21,7 +29,7 @@ export const PelanggaranRoutes = new Elysia({ prefix: "api/pelanggaran" })
   .post("/", PelanggaranController.create, { body: pelanggaranBody })
   .patch("/:id_pelanggaran", PelanggaranController.update, {
     params: pelanggaranParams,
-    body: pelanggaranBody,
+    body: pelanggaranUpdateBody,
   })
   .delete("/:id_pelanggaran", PelanggaranController.delete, {
     params: pelanggaranParams,

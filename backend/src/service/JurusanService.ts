@@ -2,41 +2,50 @@ import prisma from "../../prisma/client"
 
 export const JurusanService = {
     getAll: async () => {
-        return await prisma.jurusan.findMany()
-    },
-    getById: async (id_jurusan: string) => {
-        return await prisma.jurusan.findUnique({
+        return await prisma.jurusan.findMany({
             where: {
-                id_jurusan: id_jurusan
+                status_delete: 0
             }
         })
     },
-    create: async (id_jurusan: string, nama_jurusan: string) => {
+    getById: async (id_jurusan: number) => {
+        return await prisma.jurusan.findFirst({
+            where: {
+                id_jurusan: id_jurusan,
+            }
+        })
+    },
+    create: async ( nama_jurusan: string) => {
         return await prisma.jurusan.create({
             data: {
-                id_jurusan: id_jurusan,
                 nama_jurusan: nama_jurusan,
                 status: "aktif",
+                status_delete: 0
             }
         })
     },
-    update: async (id_jurusan: string, nama_jurusan: string, status: string, status_delete: number) => {
+    update: async (
+        id_jurusan: number,
+        data: {
+            nama_jurusan?: string
+            status?: string
+            status_delete?: number
+        }
+    ) => {
+        return await prisma.jurusan.update({
+            where: {
+                id_jurusan: id_jurusan
+            },
+            data
+        })
+    },
+    delete: async (id_jurusan: number) => {
         return await prisma.jurusan.update({
             where: {
                 id_jurusan: id_jurusan
             },
             data: {
-                id_jurusan: id_jurusan,
-                nama_jurusan: nama_jurusan,
-                status: status,
-                status_delete: status_delete
-            }
-        })
-    },
-    delete: async (id_jurusan: string) => {
-        return await prisma.jurusan.delete({
-            where: {
-                id_jurusan: id_jurusan
+                status_delete: 1
             }
         })
     }
