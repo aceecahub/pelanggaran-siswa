@@ -1,5 +1,6 @@
 import { Elysia } from "elysia"
 import { jwt } from "@elysiajs/jwt"
+import { cors } from "@elysiajs/cors"
 
 import  AuthRoutes from "./routes/AuthRoutes"
 import UserRoutes from "./routes/UserRoutes"
@@ -16,6 +17,10 @@ import SampahRoutes from "./routes/SampahRoutes"
 import ActivityLogRoutes from "./routes/ActivityLogRoutes"
 
 const app = new Elysia()
+  .use(cors({
+    origin: true,
+    credentials: true,
+  }))
   .use(
     jwt({
       name: "jwtPlugin",
