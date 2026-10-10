@@ -13,13 +13,12 @@ export const KelasService = {
     return await prisma.kelas.findFirst({
       where: {
         id_kelas: id_kelas,
-        status_delete: 0,
       },
     })
   },
 
   create: async (
-    id_jurusan: string,
+    id_jurusan: number,
     nama_kelas: string,
   ) => {
     return await prisma.kelas.create({
@@ -34,7 +33,7 @@ export const KelasService = {
   update: async (
     id_kelas: number,
     data: {
-      id_jurusan?: string
+      id_jurusan?: number
       nama_kelas?: string
       status_delete?: number
     },

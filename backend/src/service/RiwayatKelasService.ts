@@ -13,7 +13,6 @@ export const RiwayatKelasService = {
     return await prisma.riwayatKelas.findFirst({
       where: {
         id_riwayat_kelas: id_riwayat_kelas,
-        status_delete: 0,
       },
     })
   },

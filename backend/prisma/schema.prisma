@@ -49,6 +49,7 @@ model ActivityLog {
   nama_tabel      String   @db.VarChar(255)
   record_id       Int
   deskripsi       String   @db.VarChar(255)
+  satatus_delete   Int      @default(0)
   created_at      DateTime @default(now())
   updated_at      DateTime @updatedAt
 

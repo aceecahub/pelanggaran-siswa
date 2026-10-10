@@ -16,7 +16,6 @@ export const UserService = {
     return await prisma.user.findFirst({
       where: {
         id_user,
-        status_delete: 0,
       },
       select: {
         id_user: true,

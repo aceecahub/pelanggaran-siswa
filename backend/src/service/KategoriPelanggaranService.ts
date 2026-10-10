@@ -13,7 +13,6 @@ export const KategoriPelanggaranService = {
     return await prisma.kategoriPelanggaran.findFirst({
       where: {
         id_kategori_pelanggaran: id_kategori_pelanggaran,
-        status_delete: 0,
       },
     });
   },

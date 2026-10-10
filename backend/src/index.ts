@@ -10,8 +10,10 @@ import PelanggaranRoutes from "./routes/PelanggaranRoutes"
 import KelasRoutes from "./routes/KelasRoutes"
 import RiwayatKelasRoutes from "./routes/RiwayatKelasRoutes"
 import SiswaRoutes from "./routes/SiswaRoutes"
+import PelanggaranSiswaRoutes from "./routes/PelanggaranSiswaRoutes"
 
 import SampahRoutes from "./routes/SampahRoutes"
+import ActivityLogRoutes from "./routes/ActivityLogRoutes"
 
 const app = new Elysia()
   .use(
@@ -32,7 +34,9 @@ const app = new Elysia()
   .use(KategoriPelanggaranRoutes)
   .use(PelanggaranRoutes)
   .use(RiwayatKelasRoutes)
+  .use(PelanggaranSiswaRoutes)
   .use(SampahRoutes)
+  .use(ActivityLogRoutes)
   .listen(5000)
 
 console.log(

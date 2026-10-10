@@ -1,4 +1,4 @@
-import prisma from "../../prisma/client";
+import prisma from "../../prisma/client"
 
 export const TapelService = {
   getAll: async () => {
@@ -6,16 +6,15 @@ export const TapelService = {
       where: {
         status_delete: 0,
       },
-    });
+    })
   },
 
   getById: async (id_tahun_ajaran: number) => {
     return await prisma.tahunAjaran.findFirst({
       where: {
         id_tahun_ajaran: id_tahun_ajaran,
-        status_delete: 0,
       },
-    });
+    })
   },
 
   create: async (nama: string) => {
@@ -25,15 +24,15 @@ export const TapelService = {
         status: "aktif",
         status_delete: 0,
       },
-    });
+    })
   },
 
   update: async (
     id_tahun_ajaran: number,
     data: {
-      nama?: string;
-      status?: string;
-      status_delete?: number;
+      nama?: string
+      status?: string
+      status_delete?: number
     },
   ) => {
     return await prisma.tahunAjaran.update({
@@ -41,7 +40,7 @@ export const TapelService = {
         id_tahun_ajaran: id_tahun_ajaran,
       },
       data,
-    });
+    })
   },
 
   delete: async (id_tahun_ajaran: number) => {
@@ -52,6 +51,6 @@ export const TapelService = {
       data: {
         status_delete: 1,
       },
-    });
+    })
   },
-};
+}

@@ -13,7 +13,6 @@ export const PelanggaranService = {
     return await prisma.pelanggaran.findFirst({
       where: {
         id_pelanggaran: id_pelanggaran,
-        status_delete: 0,
       },
     })
   },

@@ -6,13 +6,13 @@ const kelasParams = t.Object({
 })
 
 const kelasBody = t.Object({
-  id_jurusan: t.String(),
+  id_jurusan: t.Number(),
   nama_kelas: t.String(),
   status_delete: t.Optional(t.Number()),
 })
 
 const kelasUpdateBody = t.Object({
-  id_jurusan: t.Optional(t.String()),
+  id_jurusan: t.Optional(t.Number()),
   nama_kelas: t.Optional(t.String()),
   status_delete: t.Optional(t.Number()),
 })

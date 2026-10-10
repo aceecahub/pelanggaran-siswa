@@ -54,10 +54,9 @@ export const KelasController = {
 
   create: async ({ body }: any) => {
     try {
-      const idJurusanInput = body?.id_jurusan?.trim()
       const namaKelasInput = body?.nama_kelas?.trim()
       if (
-        !idJurusanInput ||
+        !body?.id_jurusan ||
         !namaKelasInput
       ) {
         return {
@@ -77,7 +76,7 @@ export const KelasController = {
         }
       }
       const kelas = await KelasService.create(
-        idJurusanInput,
+        Number(body.id_jurusan),
         namaKelasInput,
       )
       return {

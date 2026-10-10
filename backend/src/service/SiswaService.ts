@@ -11,7 +11,6 @@ export const SiswaService = {
     return await prisma.siswa.findFirst({
       where: {
         nis: nis,
-        status_delete: 0,
       },
     })
   },
