@@ -38,7 +38,7 @@ const rankedStudents = computed(() => {
     return store.siswas.value.slice(0, 4).map((s, idx) => ({
       nis: s.nis,
       nama: s.nama_siswa,
-      kelas: store.kelases.value[idx % store.kelases.value.length]?.nama_kelas || 'X RPL 1',
+      kelas: store.kelases.value[idx % store.kelases.value.length]?.nama_kelas || '-',
       totalPoints: 0,
       violationsCount: 0,
       latestStatus: 'Bersih',
@@ -86,7 +86,7 @@ const getStatusBadge = (points: number, status: string) => {
     </div>
 
     <!-- Student List (Matches Donezo Team Collaboration style) -->
-    <div class="space-y-4 my-auto">
+    <div v-if="rankedStudents.length > 0" class="space-y-4 my-auto">
       <div
         v-for="st in rankedStudents"
         :key="st.nis"
@@ -126,6 +126,9 @@ const getStatusBadge = (points: number, status: string) => {
           {{ getStatusBadge(st.totalPoints, st.latestStatus).text }}
         </span>
       </div>
+    </div>
+    <div v-else class="my-auto py-8 text-center text-xs text-gray-400">
+      Belum ada data siswa atau kasus tercatat.
     </div>
 
     <!-- Bottom link -->

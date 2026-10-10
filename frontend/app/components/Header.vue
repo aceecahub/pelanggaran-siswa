@@ -95,10 +95,10 @@ const handleSearch = () => {
 
         <div class="hidden sm:block text-left">
           <h4 class="text-sm font-semibold text-gray-900 leading-tight">
-            {{ store.currentUser.value?.username || 'Totok Michael' }}
+            {{ store.currentUser.value?.username || 'Admin' }}
           </h4>
-          <p class="text-xs text-gray-400 font-normal leading-tight">
-            {{ store.currentUser.value?.role === 'admin' ? 'tmichael20@mail.com' : 'petugas@sikap.sch.id' }}
+          <p class="text-xs text-gray-400 font-normal leading-tight capitalize">
+            {{ store.currentUser.value?.role || 'Administrator' }}
           </p>
         </div>
       </div>

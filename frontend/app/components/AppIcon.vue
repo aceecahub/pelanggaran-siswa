@@ -248,6 +248,28 @@ const sizePx = computed(() => {
       <line x1="3" y1="18" x2="21" y2="18" />
     </svg>
 
+    <!-- Lock -->
+    <svg v-else-if="name === 'lock'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-full h-full">
+      <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+    </svg>
+
+    <!-- Unlock -->
+    <svg v-else-if="name === 'unlock'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-full h-full">
+      <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+      <path d="M7 11V7a5 5 0 0 1 9.9-1" />
+    </svg>
+
+    <!-- Grip / Drag Handle -->
+    <svg v-else-if="name === 'grip' || name === 'drag'" viewBox="0 0 24 24" fill="currentColor" class="w-full h-full">
+      <circle cx="9" cy="6" r="1.5" />
+      <circle cx="9" cy="12" r="1.5" />
+      <circle cx="9" cy="18" r="1.5" />
+      <circle cx="15" cy="6" r="1.5" />
+      <circle cx="15" cy="12" r="1.5" />
+      <circle cx="15" cy="18" r="1.5" />
+    </svg>
+
     <!-- Default Fallback -->
     <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-full h-full">
       <circle cx="12" cy="12" r="10" />

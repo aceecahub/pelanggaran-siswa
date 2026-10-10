@@ -115,9 +115,9 @@ const defaultWidgets: WidgetItem[] = [
     title: 'Siswa Akumulasi Poin Tertinggi',
     description: 'Peringkat siswa dengan akumulasi poin tertinggi dan status SP.',
     category: 'action',
-    w: 5,
+    w: 7,
     h: 4,
-    minW: 3,
+    minW: 4,
     minH: 3,
     x: 0,
     y: 6,
@@ -128,24 +128,11 @@ const defaultWidgets: WidgetItem[] = [
     title: 'Tingkat Penyelesaian Sanksi',
     description: 'Meteran circular arc progres penanganan sanksi kedisiplinan.',
     category: 'chart',
-    w: 3,
-    h: 4,
-    minW: 2,
-    minH: 3,
-    x: 5,
-    y: 6,
-    visible: true,
-  },
-  {
-    id: 'tracker_timer',
-    title: 'Time Tracker Konseling',
-    description: 'Pencatat waktu sesi konseling langsung dengan pemilih siswa.',
-    category: 'action',
-    w: 4,
+    w: 5,
     h: 4,
     minW: 3,
     minH: 3,
-    x: 8,
+    x: 7,
     y: 6,
     visible: true,
   },
@@ -157,7 +144,7 @@ let grid: GridStack | null = null
 
 // UI States
 const isMenuWidgetOpen = ref(false)
-const isEditMode = ref(true)
+const isEditMode = ref(false)
 const widgetSearch = ref('')
 
 // Computed metrics for stats
@@ -192,7 +179,7 @@ const filteredDrawerWidgets = computed(() => {
 const loadSavedLayout = () => {
   if (import.meta.client) {
     try {
-      const saved = localStorage.getItem('sikap_dashboard_layout_v2')
+      const saved = localStorage.getItem('sikap_dashboard_layout_v3')
       if (saved) {
         const parsed = JSON.parse(saved) as Partial<WidgetItem>[]
         widgets.value = defaultWidgets.map((def) => {
@@ -219,6 +206,8 @@ const loadSavedLayout = () => {
 // Save layout to localStorage
 const saveLayout = () => {
   if (import.meta.client && grid) {
+    // Only persist in 12-column mode to prevent mobile view from overwriting desktop coordinates
+    if (grid.getColumn() !== 12) return
     try {
       const saveNodes = grid.save(false) as GridStackNode[]
       if (Array.isArray(saveNodes)) {
@@ -232,11 +221,29 @@ const saveLayout = () => {
           }
         })
       }
-      localStorage.setItem('sikap_dashboard_layout_v2', JSON.stringify(widgets.value))
+      localStorage.setItem('sikap_dashboard_layout_v3', JSON.stringify(widgets.value))
     } catch (e) {
       console.warn('Failed to save layout', e)
     }
   }
+}
+
+// Synchronize coordinates from GridStack engine nodes into reactive widgets state
+const syncLayoutFromGrid = () => {
+  if (!grid) return
+  const nodes = grid.engine.nodes
+  nodes.forEach((node) => {
+    const id = node.el?.getAttribute('gs-id') || (node as any).id
+    if (id) {
+      const item = widgets.value.find((w) => w.id === id)
+      if (item) {
+        if (node.x !== undefined) item.x = node.x
+        if (node.y !== undefined) item.y = node.y
+        if (node.w !== undefined) item.w = node.w
+        if (node.h !== undefined) item.h = node.h
+      }
+    }
+  })
 }
 
 // Initialize GridStack
@@ -252,10 +259,18 @@ const initGrid = async () => {
   grid = GridStack.init(
     {
       column: 12,
-      cellHeight: 85,
+      columnOpts: {
+        breakpointForWindow: true,
+        breakpoints: [
+          { w: 768, c: 1 },
+          { w: 1024, c: 6 },
+          { w: 1280, c: 12 },
+        ],
+      },
+      cellHeight: 96,
       margin: 12,
       animate: true,
-      float: true,
+      float: false,
       handle: '.grid-drag-handle',
       resizable: {
         handles: 'e, se, s, sw, w',
@@ -265,8 +280,122 @@ const initGrid = async () => {
     gridContainer.value
   )
 
+  // Apply initial locked state (default: terkunci)
+  grid.enableMove(isEditMode.value)
+  grid.enableResize(isEditMode.value)
+
+  // Track pre-drag positions for responsive card-swapping
+  let draggingOrigin: { id: string; x: number; y: number; w: number; h: number } | null = null
+  let preDragLayout: { id: string; x: number; y: number; w: number; h: number }[] = []
+
+  grid.on('dragstart', (event: any, el: HTMLElement) => {
+    const node = (el as any).gridstackNode
+    const id = el.getAttribute('gs-id')
+    if (node && id) {
+      draggingOrigin = {
+        id,
+        x: node.x,
+        y: node.y,
+        w: node.w,
+        h: node.h,
+      }
+      // Save snapshot of all visible widgets before displacement
+      preDragLayout = widgets.value
+        .filter((w) => w.visible)
+        .map((w) => ({ id: w.id, x: w.x, y: w.y, w: w.w, h: w.h }))
+    }
+  })
+
+  grid.on('dragstop', (event: any, el: HTMLElement) => {
+    if (!draggingOrigin || !grid) return
+
+    const node = (el as any).gridstackNode
+    const id = el.getAttribute('gs-id')
+    if (!node || !id) {
+      draggingOrigin = null
+      return
+    }
+
+    const newX = node.x
+    const newY = node.y
+    const origX = draggingOrigin.x
+    const origY = draggingOrigin.y
+
+    // If card moved to a new slot
+    if (newX !== origX || newY !== origY) {
+      // Find which widget was originally at the landing spot
+      let maxOverlap = 0
+      let targetWidget: { id: string; x: number; y: number; w: number; h: number } | null = null
+
+      for (const item of preDragLayout) {
+        if (item.id === id) continue
+        const overlapX = Math.max(0, Math.min(newX + node.w, item.x + item.w) - Math.max(newX, item.x))
+        const overlapY = Math.max(0, Math.min(newY + node.h, item.y + item.h) - Math.max(newY, item.y))
+        const area = overlapX * overlapY
+        if (area > maxOverlap) {
+          maxOverlap = area
+          targetWidget = item
+        }
+      }
+
+      if (targetWidget && maxOverlap > 0) {
+        // Swap positions of dragged widget and target widget
+        const targetEl = document.querySelector(`[gs-id="${targetWidget.id}"]`) as HTMLElement
+        if (targetEl) {
+          grid.batchUpdate()
+
+          // Reset any other bystander widgets that shifted during drag
+          preDragLayout.forEach((orig) => {
+            if (orig.id !== id && orig.id !== targetWidget.id) {
+              const otherEl = document.querySelector(`[gs-id="${orig.id}"]`) as HTMLElement
+              if (otherEl) {
+                grid.update(otherEl, { x: orig.x, y: orig.y })
+                const wObj = widgets.value.find((w) => w.id === orig.id)
+                if (wObj) {
+                  wObj.x = orig.x
+                  wObj.y = orig.y
+                }
+              }
+            }
+          })
+
+          const colLimit = grid.getColumn()
+          const safeTargetX = Math.min(origX, Math.max(0, colLimit - targetWidget.w))
+          const safeDraggedX = Math.min(targetWidget.x, Math.max(0, colLimit - node.w))
+
+          // Move target widget into dragged widget's origin
+          grid.update(targetEl, { x: safeTargetX, y: origY })
+          // Move dragged widget into target widget's origin
+          grid.update(el, { x: safeDraggedX, y: targetWidget.y })
+
+          // Update reactive state
+          const wDragged = widgets.value.find((w) => w.id === id)
+          const wTarget = widgets.value.find((w) => w.id === targetWidget.id)
+          if (wDragged) {
+            wDragged.x = safeDraggedX
+            wDragged.y = targetWidget.y
+          }
+          if (wTarget) {
+            wTarget.x = safeTargetX
+            wTarget.y = origY
+          }
+        }
+      } else {
+        const wDragged = widgets.value.find((w) => w.id === id)
+        if (wDragged) {
+          wDragged.x = newX
+          wDragged.y = newY
+        }
+      }
+    }
+
+    draggingOrigin = null
+    saveLayout()
+  })
+
   // Listen to change and save layout
   grid.on('change', () => {
+    syncLayoutFromGrid()
     saveLayout()
   })
 
@@ -286,6 +415,8 @@ const initGrid = async () => {
           }
         }
       })
+      grid?.compact()
+      syncLayoutFromGrid()
       saveLayout()
     }
   })
@@ -307,37 +438,44 @@ const setupDragInItems = async () => {
   }
 }
 
-// Hide a widget
-const hideWidget = (id: string) => {
+// Hide a widget and automatically adapt/compact remaining cards upwards
+const hideWidget = async (id: string) => {
   const w = widgets.value.find((item) => item.id === id)
-  if (w) {
+  if (w && grid) {
     w.visible = false
     const el = document.querySelector(`[gs-id="${id}"]`)
-    if (el && grid) {
+    if (el) {
       grid.removeWidget(el as HTMLElement, false)
+      // Automatically compact remaining widgets up so lower cards adapt their positions
+      grid.compact()
+      syncLayoutFromGrid()
+      await nextTick()
+      saveLayout()
     }
-    saveLayout()
   }
 }
 
-// Show a widget
+// Show a widget and compact layout
 const showWidget = async (id: string) => {
   const w = widgets.value.find((item) => item.id === id)
-  if (w) {
+  if (w && grid) {
     w.visible = true
     await nextTick()
     const el = document.querySelector(`[gs-id="${id}"]`)
-    if (el && grid) {
+    if (el) {
       grid.makeWidget(el as HTMLElement)
+      grid.compact()
+      syncLayoutFromGrid()
+      await nextTick()
+      saveLayout()
     }
-    saveLayout()
   }
 }
 
 // Reset layout to default
 const resetLayout = async () => {
   if (confirm('Kembalikan tata letak dashboard ke posisi default?')) {
-    localStorage.removeItem('sikap_dashboard_layout_v2')
+    localStorage.removeItem('sikap_dashboard_layout_v3')
     widgets.value = JSON.parse(JSON.stringify(defaultWidgets))
     await nextTick()
     await initGrid()
@@ -382,9 +520,6 @@ onUnmounted(() => {
           <h1 class="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">
             Dashboard Kedisiplinan Siswa
           </h1>
-          <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#164E3D]/10 text-[#164E3D] border border-[#164E3D]/20">
-            GridStack Active
-          </span>
         </div>
         <p class="text-sm text-gray-500 mt-1 font-normal">
           Sesuaikan tata letak dashboard Anda dengan drag & drop, sembunyikan atau tambahkan widget.
@@ -396,16 +531,16 @@ onUnmounted(() => {
         <button
           type="button"
           @click="toggleEditMode"
-          class="inline-flex items-center gap-1.5 px-4 py-2 rounded-full border text-xs font-semibold transition-all shadow-2xs"
+          class="inline-flex items-center gap-1.5 px-4 py-2 rounded-full border text-xs font-semibold transition-all shadow-2xs active:scale-95"
           :class="[
             isEditMode
-              ? 'bg-amber-50 border-amber-300 text-amber-900'
+              ? 'bg-amber-50 border-amber-300 text-amber-900 ring-2 ring-amber-300/40'
               : 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50',
           ]"
-          :title="isEditMode ? 'Kunci tata letak' : 'Buka mode edit drag & drop'"
+          :title="isEditMode ? 'Kunci tata letak agar posisi tidak bergeser' : 'Buka mode edit untuk mengatur posisi & swap card'"
         >
-          <AppIcon :name="isEditMode ? 'edit' : 'settings'" size="14" />
-          <span>{{ isEditMode ? 'Mode Edit (Drag On)' : 'Kunci Tata Letak' }}</span>
+          <AppIcon :name="isEditMode ? 'unlock' : 'lock'" size="14" :class="isEditMode ? 'text-amber-700' : 'text-gray-500'" />
+          <span>{{ isEditMode ? 'Mode Edit (Drag Aktif)' : 'Tata Letak Terkunci' }}</span>
         </button>
 
         <!-- Menu Widget Drawer Button -->
@@ -446,35 +581,41 @@ onUnmounted(() => {
       </div>
     </div>
 
-    <!-- Onboarding banner if 0 violations -->
+    <!-- Edit Mode Active Notification Banner -->
     <div
-      v-if="totalPelanggaran === 0"
-      class="p-4 rounded-3xl bg-gradient-to-r from-emerald-50 via-teal-50 to-green-50 border border-emerald-200/80 flex flex-col sm:flex-row items-center justify-between gap-4"
+      v-if="isEditMode"
+      class="p-3.5 rounded-2xl bg-amber-50/90 border border-amber-300/80 text-amber-900 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs shadow-2xs transition-all"
     >
-      <div class="flex items-center gap-3">
-        <div class="w-9 h-9 rounded-2xl bg-[#164E3D] text-white flex items-center justify-center shrink-0">
-          <AppIcon name="shield-alert" size="18" />
+      <div class="flex items-center gap-2.5">
+        <div class="w-7 h-7 rounded-full bg-amber-200/90 text-amber-900 flex items-center justify-center shrink-0">
+          <AppIcon name="unlock" size="14" />
         </div>
         <div>
-          <h4 class="text-xs font-bold text-gray-900">
-            Database Kasus Pelanggaran Masih Kosong
-          </h4>
-          <p class="text-[11px] text-gray-600">
-            Klik tombol di samping untuk memuat simulasi data demo agar seluruh widget dan grafik langsung terisi.
-          </p>
+          <span class="font-bold">Mode Edit Aktif:</span>
+          <span class="text-amber-800 ml-1">
+            Geser card ke atas card lain untuk bertukar posisi secara otomatis tanpa meninggalkan rongga kosong.
+          </span>
         </div>
       </div>
       <button
         type="button"
-        @click="store.seedDemoData()"
-        class="shrink-0 px-4 py-1.5 rounded-full bg-[#164E3D] hover:bg-[#113D2F] text-white text-xs font-semibold shadow-sm"
+        @click="toggleEditMode"
+        class="inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 rounded-full bg-amber-900 hover:bg-amber-950 text-white font-semibold shrink-0 transition-colors cursor-pointer active:scale-95"
       >
-        ✨ Muat Data Simulasi (Demo)
+        <AppIcon name="lock" size="12" />
+        <span>Kunci Tata Letak</span>
       </button>
     </div>
 
     <!-- THE GRIDSTACK CONTAINER -->
-    <div class="grid-stack w-full" ref="gridContainer">
+    <div
+      class="grid-stack w-full transition-all"
+      :class="{
+        'grid-stack-locked': !isEditMode,
+        'grid-stack-editing': isEditMode,
+      }"
+      ref="gridContainer"
+    >
       <!-- 1. Stat Total Pelanggaran -->
       <div
         v-if="widgets.find((w) => w.id === 'stat_total')?.visible"
@@ -488,13 +629,13 @@ onUnmounted(() => {
         gs-min-h="2"
       >
         <div class="grid-stack-item-content group/item relative">
-          <!-- Hover Control Bar -->
+          <!-- Edit Mode Control Bar -->
           <div
             v-if="isEditMode"
-            class="absolute top-3 right-3 z-30 flex items-center gap-1 opacity-0 group-hover/item:opacity-100 transition-opacity bg-black/40 backdrop-blur-md px-2 py-0.5 rounded-full border border-white/20 text-white text-xs"
+            class="absolute top-3 right-3 z-30 flex items-center gap-1 opacity-85 group-hover/item:opacity-100 transition-opacity bg-black/50 backdrop-blur-md px-2 py-0.5 rounded-full border border-white/20 text-white text-xs shadow-sm"
           >
-            <span class="grid-drag-handle cursor-grab active:cursor-grabbing p-1 hover:text-emerald-300" title="Geser posisi">
-              <AppIcon name="menu" size="12" />
+            <span class="grid-drag-handle cursor-grab active:cursor-grabbing p-1 hover:text-emerald-300" title="Geser ke card lain untuk bertukar posisi">
+              <AppIcon name="grip" size="13" />
             </span>
             <button type="button" @click="hideWidget('stat_total')" class="p-1 hover:text-rose-400" title="Sembunyikan">
               <AppIcon name="x" size="12" />
@@ -525,10 +666,10 @@ onUnmounted(() => {
         <div class="grid-stack-item-content group/item relative">
           <div
             v-if="isEditMode"
-            class="absolute top-3 right-3 z-30 flex items-center gap-1 opacity-0 group-hover/item:opacity-100 transition-opacity bg-white/90 backdrop-blur-md px-2 py-0.5 rounded-full border border-gray-200 text-gray-600 text-xs shadow-2xs"
+            class="absolute top-3 right-3 z-30 flex items-center gap-1 opacity-85 group-hover/item:opacity-100 transition-opacity bg-white/95 backdrop-blur-md px-2 py-0.5 rounded-full border border-gray-200 text-gray-700 text-xs shadow-2xs"
           >
-            <span class="grid-drag-handle cursor-grab active:cursor-grabbing p-1 hover:text-gray-900" title="Geser posisi">
-              <AppIcon name="menu" size="12" />
+            <span class="grid-drag-handle cursor-grab active:cursor-grabbing p-1 hover:text-gray-900" title="Geser ke card lain untuk bertukar posisi">
+              <AppIcon name="grip" size="13" />
             </span>
             <button type="button" @click="hideWidget('stat_selesai')" class="p-1 hover:text-rose-600" title="Sembunyikan">
               <AppIcon name="x" size="12" />
@@ -558,10 +699,10 @@ onUnmounted(() => {
         <div class="grid-stack-item-content group/item relative">
           <div
             v-if="isEditMode"
-            class="absolute top-3 right-3 z-30 flex items-center gap-1 opacity-0 group-hover/item:opacity-100 transition-opacity bg-white/90 backdrop-blur-md px-2 py-0.5 rounded-full border border-gray-200 text-gray-600 text-xs shadow-2xs"
+            class="absolute top-3 right-3 z-30 flex items-center gap-1 opacity-85 group-hover/item:opacity-100 transition-opacity bg-white/95 backdrop-blur-md px-2 py-0.5 rounded-full border border-gray-200 text-gray-700 text-xs shadow-2xs"
           >
-            <span class="grid-drag-handle cursor-grab active:cursor-grabbing p-1 hover:text-gray-900" title="Geser posisi">
-              <AppIcon name="menu" size="12" />
+            <span class="grid-drag-handle cursor-grab active:cursor-grabbing p-1 hover:text-gray-900" title="Geser ke card lain untuk bertukar posisi">
+              <AppIcon name="grip" size="13" />
             </span>
             <button type="button" @click="hideWidget('stat_proses')" class="p-1 hover:text-rose-600" title="Sembunyikan">
               <AppIcon name="x" size="12" />
@@ -591,10 +732,10 @@ onUnmounted(() => {
         <div class="grid-stack-item-content group/item relative">
           <div
             v-if="isEditMode"
-            class="absolute top-3 right-3 z-30 flex items-center gap-1 opacity-0 group-hover/item:opacity-100 transition-opacity bg-white/90 backdrop-blur-md px-2 py-0.5 rounded-full border border-gray-200 text-gray-600 text-xs shadow-2xs"
+            class="absolute top-3 right-3 z-30 flex items-center gap-1 opacity-85 group-hover/item:opacity-100 transition-opacity bg-white/95 backdrop-blur-md px-2 py-0.5 rounded-full border border-gray-200 text-gray-700 text-xs shadow-2xs"
           >
-            <span class="grid-drag-handle cursor-grab active:cursor-grabbing p-1 hover:text-gray-900" title="Geser posisi">
-              <AppIcon name="menu" size="12" />
+            <span class="grid-drag-handle cursor-grab active:cursor-grabbing p-1 hover:text-gray-900" title="Geser ke card lain untuk bertukar posisi">
+              <AppIcon name="grip" size="13" />
             </span>
             <button type="button" @click="hideWidget('stat_pending')" class="p-1 hover:text-rose-600" title="Sembunyikan">
               <AppIcon name="x" size="12" />
@@ -625,10 +766,10 @@ onUnmounted(() => {
         <div class="grid-stack-item-content group/item relative">
           <div
             v-if="isEditMode"
-            class="absolute top-3 right-3 z-30 flex items-center gap-1 opacity-0 group-hover/item:opacity-100 transition-opacity bg-white/90 backdrop-blur-md px-2 py-0.5 rounded-full border border-gray-200 text-gray-600 text-xs shadow-2xs"
+            class="absolute top-3 right-3 z-30 flex items-center gap-1 opacity-85 group-hover/item:opacity-100 transition-opacity bg-white/95 backdrop-blur-md px-2 py-0.5 rounded-full border border-gray-200 text-gray-700 text-xs shadow-2xs"
           >
-            <span class="grid-drag-handle cursor-grab active:cursor-grabbing p-1 hover:text-gray-900" title="Geser posisi">
-              <AppIcon name="menu" size="12" />
+            <span class="grid-drag-handle cursor-grab active:cursor-grabbing p-1 hover:text-gray-900" title="Geser ke card lain untuk bertukar posisi">
+              <AppIcon name="grip" size="13" />
             </span>
             <button type="button" @click="hideWidget('chart_weekly')" class="p-1 hover:text-rose-600" title="Sembunyikan">
               <AppIcon name="x" size="12" />
@@ -653,10 +794,10 @@ onUnmounted(() => {
         <div class="grid-stack-item-content group/item relative">
           <div
             v-if="isEditMode"
-            class="absolute top-3 right-3 z-30 flex items-center gap-1 opacity-0 group-hover/item:opacity-100 transition-opacity bg-white/90 backdrop-blur-md px-2 py-0.5 rounded-full border border-gray-200 text-gray-600 text-xs shadow-2xs"
+            class="absolute top-3 right-3 z-30 flex items-center gap-1 opacity-85 group-hover/item:opacity-100 transition-opacity bg-white/95 backdrop-blur-md px-2 py-0.5 rounded-full border border-gray-200 text-gray-700 text-xs shadow-2xs"
           >
-            <span class="grid-drag-handle cursor-grab active:cursor-grabbing p-1 hover:text-gray-900" title="Geser posisi">
-              <AppIcon name="menu" size="12" />
+            <span class="grid-drag-handle cursor-grab active:cursor-grabbing p-1 hover:text-gray-900" title="Geser ke card lain untuk bertukar posisi">
+              <AppIcon name="grip" size="13" />
             </span>
             <button type="button" @click="hideWidget('card_agenda')" class="p-1 hover:text-rose-600" title="Sembunyikan">
               <AppIcon name="x" size="12" />
@@ -681,10 +822,10 @@ onUnmounted(() => {
         <div class="grid-stack-item-content group/item relative">
           <div
             v-if="isEditMode"
-            class="absolute top-3 right-3 z-30 flex items-center gap-1 opacity-0 group-hover/item:opacity-100 transition-opacity bg-white/90 backdrop-blur-md px-2 py-0.5 rounded-full border border-gray-200 text-gray-600 text-xs shadow-2xs"
+            class="absolute top-3 right-3 z-30 flex items-center gap-1 opacity-85 group-hover/item:opacity-100 transition-opacity bg-white/95 backdrop-blur-md px-2 py-0.5 rounded-full border border-gray-200 text-gray-700 text-xs shadow-2xs"
           >
-            <span class="grid-drag-handle cursor-grab active:cursor-grabbing p-1 hover:text-gray-900" title="Geser posisi">
-              <AppIcon name="menu" size="12" />
+            <span class="grid-drag-handle cursor-grab active:cursor-grabbing p-1 hover:text-gray-900" title="Geser ke card lain untuk bertukar posisi">
+              <AppIcon name="grip" size="13" />
             </span>
             <button type="button" @click="hideWidget('card_kategori')" class="p-1 hover:text-rose-600" title="Sembunyikan">
               <AppIcon name="x" size="12" />
@@ -709,10 +850,10 @@ onUnmounted(() => {
         <div class="grid-stack-item-content group/item relative">
           <div
             v-if="isEditMode"
-            class="absolute top-3 right-3 z-30 flex items-center gap-1 opacity-0 group-hover/item:opacity-100 transition-opacity bg-white/90 backdrop-blur-md px-2 py-0.5 rounded-full border border-gray-200 text-gray-600 text-xs shadow-2xs"
+            class="absolute top-3 right-3 z-30 flex items-center gap-1 opacity-85 group-hover/item:opacity-100 transition-opacity bg-white/95 backdrop-blur-md px-2 py-0.5 rounded-full border border-gray-200 text-gray-700 text-xs shadow-2xs"
           >
-            <span class="grid-drag-handle cursor-grab active:cursor-grabbing p-1 hover:text-gray-900" title="Geser posisi">
-              <AppIcon name="menu" size="12" />
+            <span class="grid-drag-handle cursor-grab active:cursor-grabbing p-1 hover:text-gray-900" title="Geser ke card lain untuk bertukar posisi">
+              <AppIcon name="grip" size="13" />
             </span>
             <button type="button" @click="hideWidget('card_top_students')" class="p-1 hover:text-rose-600" title="Sembunyikan">
               <AppIcon name="x" size="12" />
@@ -737,10 +878,10 @@ onUnmounted(() => {
         <div class="grid-stack-item-content group/item relative">
           <div
             v-if="isEditMode"
-            class="absolute top-3 right-3 z-30 flex items-center gap-1 opacity-0 group-hover/item:opacity-100 transition-opacity bg-white/90 backdrop-blur-md px-2 py-0.5 rounded-full border border-gray-200 text-gray-600 text-xs shadow-2xs"
+            class="absolute top-3 right-3 z-30 flex items-center gap-1 opacity-85 group-hover/item:opacity-100 transition-opacity bg-white/95 backdrop-blur-md px-2 py-0.5 rounded-full border border-gray-200 text-gray-700 text-xs shadow-2xs"
           >
-            <span class="grid-drag-handle cursor-grab active:cursor-grabbing p-1 hover:text-gray-900" title="Geser posisi">
-              <AppIcon name="menu" size="12" />
+            <span class="grid-drag-handle cursor-grab active:cursor-grabbing p-1 hover:text-gray-900" title="Geser ke card lain untuk bertukar posisi">
+              <AppIcon name="grip" size="13" />
             </span>
             <button type="button" @click="hideWidget('gauge_progress')" class="p-1 hover:text-rose-600" title="Sembunyikan">
               <AppIcon name="x" size="12" />
@@ -754,34 +895,6 @@ onUnmounted(() => {
             :count-proses="totalProses"
             :count-pending="totalPending"
           />
-        </div>
-      </div>
-
-      <!-- 10. Time Tracker Konseling -->
-      <div
-        v-if="widgets.find((w) => w.id === 'tracker_timer')?.visible"
-        class="grid-stack-item"
-        gs-id="tracker_timer"
-        :gs-x="widgets.find((w) => w.id === 'tracker_timer')?.x"
-        :gs-y="widgets.find((w) => w.id === 'tracker_timer')?.y"
-        :gs-w="widgets.find((w) => w.id === 'tracker_timer')?.w"
-        :gs-h="widgets.find((w) => w.id === 'tracker_timer')?.h"
-        gs-min-w="3"
-        gs-min-h="3"
-      >
-        <div class="grid-stack-item-content group/item relative">
-          <div
-            v-if="isEditMode"
-            class="absolute top-3 right-3 z-30 flex items-center gap-1 opacity-0 group-hover/item:opacity-100 transition-opacity bg-black/40 backdrop-blur-md px-2 py-0.5 rounded-full border border-white/20 text-white text-xs"
-          >
-            <span class="grid-drag-handle cursor-grab active:cursor-grabbing p-1 hover:text-emerald-300" title="Geser posisi">
-              <AppIcon name="menu" size="12" />
-            </span>
-            <button type="button" @click="hideWidget('tracker_timer')" class="p-1 hover:text-rose-400" title="Sembunyikan">
-              <AppIcon name="x" size="12" />
-            </button>
-          </div>
-          <TimeTrackerWidget />
         </div>
       </div>
     </div>

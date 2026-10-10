@@ -57,7 +57,7 @@ const categoryStats = computed(() => {
     </div>
 
     <!-- Category Distribution Items (Donezo project list style) -->
-    <div class="space-y-3.5 my-auto">
+    <div v-if="categoryStats.length > 0" class="space-y-3.5 my-auto">
       <div
         v-for="cat in categoryStats"
         :key="cat.id"
@@ -98,6 +98,9 @@ const categoryStats = computed(() => {
           </div>
         </div>
       </div>
+    </div>
+    <div v-else class="my-auto py-8 text-center text-xs text-gray-400">
+      Belum ada data kategori pelanggaran.
     </div>
 
     <!-- Bottom link -->

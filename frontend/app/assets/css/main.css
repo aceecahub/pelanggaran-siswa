@@ -7,7 +7,7 @@
 }
 
 .grid-stack > .grid-stack-item > .grid-stack-item-content {
-  overflow: visible !important;
+  overflow: hidden !important;
   border-radius: 1.5rem;
 }
 
@@ -30,4 +30,22 @@
 
 .grid-stack-item > .ui-resizable-se:hover {
   opacity: 1;
+}
+
+/* GridStack Animation & Smooth Swap Transition */
+.grid-stack.grid-stack-animate,
+.grid-stack.grid-stack-animate > .grid-stack-item {
+  transition: transform 0.25s cubic-bezier(0.2, 0, 0, 1), left 0.25s cubic-bezier(0.2, 0, 0, 1), top 0.25s cubic-bezier(0.2, 0, 0, 1), width 0.25s ease, height 0.25s ease !important;
+}
+
+.grid-stack.grid-stack-animate > .grid-stack-item.ui-draggable-dragging {
+  transition: none !important;
+  z-index: 100 !important;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1) !important;
+  opacity: 0.95 !important;
+}
+
+/* Hide resizable handles when locked */
+.grid-stack-locked .ui-resizable-handle {
+  display: none !important;
 }

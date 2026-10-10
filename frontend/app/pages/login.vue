@@ -8,8 +8,8 @@ const store = useDataStore()
 const config = useRuntimeConfig()
 const apiBase = config.public.apiBase || 'http://localhost:5000'
 
-const username = ref('admin')
-const password = ref('password123')
+const username = ref('')
+const password = ref('')
 const loading = ref(false)
 const errorMessage = ref('')
 
@@ -27,24 +27,22 @@ const handleLogin = async () => {
     })
 
     if (res?.data?.accessToken) {
-      store.currentUser.value = {
-        id_user: 1,
+      const userObj = {
+        id_user: res.data.user?.id_user || 1,
         username: res.data.user?.username || username.value,
         role: res.data.user?.role || 'admin',
         token: res.data.accessToken,
       }
+      store.currentUser.value = userObj
+      if (import.meta.client) {
+        localStorage.setItem('sikap_auth_user', JSON.stringify(userObj))
+      }
+      router.push('/')
+    } else {
+      errorMessage.value = res?.message || 'Login gagal. Periksa kembali username dan password.'
     }
-    router.push('/')
   } catch (err: any) {
-    // If backend is not running or wrong pass, support quick demo login
-    console.warn('Backend not available or login failed, signing in with demo session', err?.message)
-    store.currentUser.value = {
-      id_user: 1,
-      username: username.value || 'Totok Michael',
-      role: 'admin',
-      token: 'demo-token',
-    }
-    router.push('/')
+    errorMessage.value = err?.data?.message || err?.message || 'Gagal terhubung ke backend server atau username/password salah.'
   } finally {
     loading.value = false
   }
@@ -114,11 +112,6 @@ const handleLogin = async () => {
         </button>
       </form>
 
-      <div class="pt-2 text-center">
-        <p class="text-xs text-gray-400">
-          Menggunakan akun default: <span class="font-mono text-gray-600">admin</span> / <span class="font-mono text-gray-600">password123</span>
-        </p>
-      </div>
     </div>
   </div>
 </template>
