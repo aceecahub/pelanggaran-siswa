@@ -2,15 +2,17 @@ import { Elysia, t } from "elysia"
 import { JurusanController } from "../controller/JurusanController"
 
 const jurusanParams= t.Object({
-    id_jurusan: t.Number()
+    id_jurusan: t.Numeric()
 })
 
 const jurusanBody = t.Object({
+    kd_jurusan: t.String(),
     nama_jurusan: t.String(),
     status_delete: t.Optional(t.Number())
 })
 
 const jurusanUpdateBody = t.Object({
+    kd_jurusan: t.Optional(t.String()),
     nama_jurusan: t.Optional(t.String()),
     status: t.Optional(t.String()),
     status_delete: t.Optional(t.Number())

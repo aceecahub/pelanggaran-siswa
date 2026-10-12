@@ -3,7 +3,7 @@ import { UserController } from "../controller/UserController"
 import { password } from "bun"
 
 const userParams = t.Object({
-  id_user: t.Number(),
+  id_user: t.Numeric(),
 })
 
 const userBody = t.Object({

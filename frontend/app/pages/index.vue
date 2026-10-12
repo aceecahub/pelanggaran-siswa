@@ -1,8 +1,11 @@
 <script setup lang="ts">
 import type { GridStack, GridStackNode } from 'gridstack'
 
-const api = useApi()
-const store = useDataStore()
+const { siswas, getSiswa } = useSiswa()
+const { pelanggaranSiswas, getPelanggaranSiswa } = usePelanggaranSiswa()
+const { kelases, getKelas } = useKelas()
+const { pelanggarans, getPelanggaran } = usePelanggaran()
+const { kategoris, getKategori } = useKategoriPelanggaran()
 
 interface WidgetItem {
   id: string
@@ -148,18 +151,18 @@ const isEditMode = ref(false)
 const widgetSearch = ref('')
 
 // Computed metrics for stats
-const totalPelanggaran = computed(() => store.pelanggaranSiswas.value.length)
+const totalPelanggaran = computed(() => pelanggaranSiswas.value.length)
 const totalPoin = computed(() => {
-  return store.pelanggaranSiswas.value.reduce((sum, p) => sum + (Number(p.point) || 0), 0)
+  return pelanggaranSiswas.value.reduce((sum, p) => sum + (Number(p.point) || 0), 0)
 })
 const totalSelesai = computed(
-  () => store.pelanggaranSiswas.value.filter((p) => p.status_sanksi === 'Selesai').length
+  () => pelanggaranSiswas.value.filter((p) => p.status_sanksi === 'Selesai').length
 )
 const totalProses = computed(
-  () => store.pelanggaranSiswas.value.filter((p) => p.status_sanksi === 'Dalam Proses').length
+  () => pelanggaranSiswas.value.filter((p) => p.status_sanksi === 'Dalam Proses').length
 )
 const totalPending = computed(
-  () => store.pelanggaranSiswas.value.filter((p) => p.status_sanksi === 'Pending').length
+  () => pelanggaranSiswas.value.filter((p) => p.status_sanksi === 'Pending').length
 )
 const progressPercentage = computed(() => {
   if (totalPelanggaran.value === 0) return 0
@@ -491,15 +494,19 @@ const toggleEditMode = () => {
   }
 }
 
+const loadData = async () => {
+  await Promise.allSettled([
+    getSiswa(),
+    getPelanggaranSiswa(),
+    getKelas(),
+    getPelanggaran(),
+    getKategori(),
+  ])
+}
+
 onMounted(async () => {
   loadSavedLayout()
-  await Promise.allSettled([
-    api.getSiswa(),
-    api.getPelanggaranSiswa(),
-    api.getKelas(),
-    api.getPelanggaran(),
-    api.getKategori(),
-  ])
+  await loadData()
   await nextTick()
   await initGrid()
 })
@@ -560,14 +567,24 @@ onUnmounted(() => {
           </span>
         </button>
 
+        <!-- Refresh Data Button -->
+        <button
+          type="button"
+          @click="loadData"
+          class="w-9 h-9 rounded-full bg-white border border-gray-200/90 text-gray-600 hover:text-gray-900 flex items-center justify-center hover:bg-gray-50 shadow-2xs transition-colors"
+          title="Refresh Data"
+        >
+          <AppIcon name="refresh" size="14" />
+        </button>
+
         <!-- Reset Layout Button -->
         <button
           type="button"
           @click="resetLayout"
           class="w-9 h-9 rounded-full bg-white border border-gray-200/90 text-gray-600 hover:text-gray-900 flex items-center justify-center hover:bg-gray-50 shadow-2xs transition-colors"
-          title="Reset tata letak ke posisi default"
+          title="Kembalikan tata letak bawaan (Reset Layout)"
         >
-          <AppIcon name="refresh" size="14" />
+          <AppIcon name="restore" size="14" />
         </button>
 
         <!-- Catat Pelanggaran Button -->

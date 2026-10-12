@@ -124,14 +124,14 @@ export const KelasController = {
 
       const dataToUpdate: any = {}
       if (body.id_jurusan !== undefined) {
-        const idJurusanInput = body.id_jurusan.trim()
-        if (!idJurusanInput) {
+        const idJurusanNumber = Number(body.id_jurusan)
+        if (!Number.isSafeInteger(idJurusanNumber) || idJurusanNumber <= 0) {
           return {
             status: 400,
-            message: "id_jurusan tidak boleh kosong",
+            message: "id_jurusan harus berupa angka positif yang valid",
           }
         }
-        dataToUpdate.id_jurusan = idJurusanInput
+        dataToUpdate.id_jurusan = idJurusanNumber
       }
 
       if (body.nama_kelas !== undefined) {

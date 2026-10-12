@@ -2,7 +2,7 @@ import { Elysia, t } from "elysia"
 import { PelanggaranController } from "../controller/PelanggaranController"
 
 const pelanggaranParams = t.Object({
-  id_pelanggaran: t.Number(),
+  id_pelanggaran: t.Numeric(),
 })
 
 const pelanggaranBody = t.Object({

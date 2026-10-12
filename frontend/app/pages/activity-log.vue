@@ -1,16 +1,19 @@
 <script setup lang="ts">
-const api = useApi()
-const store = useDataStore()
+const { logs, getActivityLog, loading } = useActivityLog()
 
 const searchQuery = ref('')
 const filterAksi = ref('all')
 
-onMounted(async () => {
-  await api.getActivityLog()
+const loadData = async () => {
+  await getActivityLog()
+}
+
+onMounted(() => {
+  loadData()
 })
 
 const filteredLogs = computed(() => {
-  return store.logs.value.filter((l) => {
+  return logs.value.filter((l) => {
     const matchesSearch =
       !searchQuery.value ||
       l.deskripsi.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
@@ -42,7 +45,16 @@ const filteredLogs = computed(() => {
         </p>
       </div>
 
-      <div class="flex items-center gap-2">
+      <div class="flex items-center gap-3">
+        <button
+          type="button"
+          @click="loadData"
+          class="w-10 h-10 rounded-full bg-white border border-gray-200/90 text-gray-600 hover:text-gray-900 flex items-center justify-center hover:bg-gray-50 shadow-2xs transition-colors"
+          title="Refresh Data"
+        >
+          <AppIcon name="refresh" size="16" />
+        </button>
+
         <span class="px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 text-xs font-semibold border border-emerald-200/60">
           ● Sistem Audit Aktif
         </span>

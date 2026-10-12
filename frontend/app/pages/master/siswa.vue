@@ -1,10 +1,7 @@
 <script setup lang="ts">
 import type { Siswa } from '~/types'
 
-const api = useApi()
-const store = useDataStore()
-
-const loading = ref(false)
+const { siswas, getSiswa, createSiswa, updateSiswa, deleteSiswa, loading } = useSiswa()
 const searchQuery = ref('')
 const filterStatus = ref('Semua')
 const filterJk = ref('Semua')
@@ -37,12 +34,7 @@ const form = ref<Partial<Siswa>>({
 })
 
 const loadData = async () => {
-  loading.value = true
-  try {
-    await api.getSiswa()
-  } finally {
-    loading.value = false
-  }
+  await getSiswa()
 }
 
 onMounted(() => {
@@ -50,7 +42,7 @@ onMounted(() => {
 })
 
 const filteredSiswa = computed(() => {
-  return store.siswas.value.filter((s) => {
+  return siswas.value.filter((s) => {
     const matchesSearch =
       !searchQuery.value ||
       s.nama_siswa.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
@@ -105,7 +97,7 @@ const confirmDelete = (nis: number) => {
 
 const handleDelete = async () => {
   if (targetDeleteNis.value !== null) {
-    await api.deleteSiswa(targetDeleteNis.value)
+    await deleteSiswa(targetDeleteNis.value)
     isDeleteModalOpen.value = false
     targetDeleteNis.value = null
   }
@@ -118,9 +110,9 @@ const handleSave = async () => {
   }
 
   if (editingSiswa.value) {
-    await api.updateSiswa(editingSiswa.value.nis, form.value)
+    await updateSiswa(editingSiswa.value.nis, form.value)
   } else {
-    await api.createSiswa(form.value as Siswa)
+    await createSiswa(form.value as Siswa)
   }
 
   isFormModalOpen.value = false
@@ -225,7 +217,7 @@ const handleSave = async () => {
               <th class="py-3.5 px-6">Siswa</th>
               <th class="py-3.5 px-4">NIS</th>
               <th class="py-3.5 px-4">JK</th>
-              <th class="py-3.5 px-4">Tempat, Tgl Lahir</th>
+              <th class="py-3.5 px-4">Tempat Lahir</th>
               <th class="py-3.5 px-4">No. HP</th>
               <th class="py-3.5 px-4">Status</th>
               <th class="py-3.5 px-6 text-right">Aksi</th>
@@ -271,7 +263,7 @@ const handleSave = async () => {
 
               <!-- TTL -->
               <td class="py-3.5 px-4 text-xs text-gray-600">
-                {{ siswa.tempat_lahir }}, {{ siswa.tgl_lahir }}
+                {{ siswa.tempat_lahir }}
               </td>
 
               <!-- No HP -->

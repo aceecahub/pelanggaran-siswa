@@ -2,7 +2,7 @@ import { Elysia, t } from "elysia";
 import { KategoriPelanggaranController } from "../controller/KategoriPelanggaranController";
 
 const KategoriPelanggaranParams = t.Object({
-  id_kategori_pelanggaran: t.Number(),
+  id_kategori_pelanggaran: t.Numeric(),
 });
 
 const KategoriPelanggaranBody = t.Object({

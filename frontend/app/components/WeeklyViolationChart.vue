@@ -1,11 +1,11 @@
 <script setup lang="ts">
-const store = useDataStore()
+const { pelanggaranSiswas } = usePelanggaranSiswa()
 
 // Days of week analysis (last 7 days)
 const dayNamesShort = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab']
 
 const weeklyStats = computed(() => {
-  const records = store.pelanggaranSiswas.value
+  const records = pelanggaranSiswas.value || []
   const today = new Date()
   const days: Array<{
     dateStr: string
@@ -30,8 +30,13 @@ const weeklyStats = computed(() => {
 
     // Count records matching this date
     const matching = records.filter((r) => {
-      if (!r.tgl) return false
-      return r.tgl.startsWith(dateStr) || r.tgl === dateStr
+      if (!r || !r.tgl) return false
+      const tglStr = typeof r.tgl === 'string'
+        ? r.tgl
+        : r.tgl instanceof Date
+        ? r.tgl.toISOString()
+        : String(r.tgl)
+      return tglStr.startsWith(dateStr) || tglStr.slice(0, 10) === dateStr
     })
 
     const count = matching.length

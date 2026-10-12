@@ -1,8 +1,19 @@
 <script setup lang="ts">
 import type { PelanggaranSiswa } from '~/types'
 
-const api = useApi()
-const store = useDataStore()
+const {
+  pelanggaranSiswas,
+  getPelanggaranSiswa,
+  createPelanggaranSiswa,
+  updatePelanggaranSiswa,
+  deletePelanggaranSiswa,
+} = usePelanggaranSiswa()
+const { siswas, getSiswa } = useSiswa()
+const { kelases, getKelas } = useKelas()
+const { pelanggarans, getPelanggaran } = usePelanggaran()
+const { tapels, getTapel } = useTapel()
+const { kategoris, getKategori } = useKategoriPelanggaran()
+const { currentUser } = useUser()
 
 const searchQuery = ref('')
 const filterStatus = ref('all')
@@ -29,23 +40,27 @@ const form = ref<Partial<PelanggaranSiswa>>({
   nama_pelanggaran: '',
   point: 5,
   catatan: '',
-  sanksi: '',
+  sanksi: 'Teguran lisan dan pembinaan',
   status_sanksi: 'Pending',
 })
 
-onMounted(async () => {
+const loadData = async () => {
   await Promise.allSettled([
-    api.getPelanggaranSiswa(),
-    api.getSiswa(),
-    api.getKelas(),
-    api.getPelanggaran(),
-    api.getTapel(),
-    api.getKategori(),
+    getPelanggaranSiswa(),
+    getSiswa(),
+    getKelas(),
+    getPelanggaran(),
+    getTapel(),
+    getKategori(),
   ])
+}
+
+onMounted(async () => {
+  await loadData()
 })
 
 const filteredRecords = computed(() => {
-  return store.pelanggaranSiswas.value.filter((r) => {
+  return pelanggaranSiswas.value.filter((r) => {
     const matchesSearch =
       !searchQuery.value ||
       r.nama_siswa.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
@@ -61,7 +76,7 @@ const filteredRecords = computed(() => {
 
 // Auto-fill student name when student is selected
 const onStudentChange = () => {
-  const s = store.siswas.value.find((item) => item.nis === form.value.nis)
+  const s = siswas.value.find((item) => item.nis === form.value.nis)
   if (s) {
     form.value.nama_siswa = s.nama_siswa
   }
@@ -69,7 +84,7 @@ const onStudentChange = () => {
 
 // Auto-fill class name when class is selected
 const onClassChange = () => {
-  const k = store.kelases.value.find((item) => item.id_kelas === form.value.id_kelas)
+  const k = kelases.value.find((item) => item.id_kelas === form.value.id_kelas)
   if (k) {
     form.value.nama_kelas = k.nama_kelas
   }
@@ -77,7 +92,7 @@ const onClassChange = () => {
 
 // Auto-fill violation details and points when violation is selected
 const onViolationChange = () => {
-  const p = store.pelanggarans.value.find(
+  const p = pelanggarans.value.find(
     (item) => item.id_pelanggaran === form.value.id_pelanggaran
   )
   if (p) {
@@ -89,14 +104,14 @@ const onViolationChange = () => {
 
 const openCreateModal = () => {
   editingRecord.value = null
-  const defaultSiswa = store.siswas.value[0]
-  const defaultKelas = store.kelases.value[0]
-  const defaultPelanggaran = store.pelanggarans.value[0]
+  const defaultSiswa = siswas.value[0]
+  const defaultKelas = kelases.value[0]
+  const defaultPelanggaran = pelanggarans.value[0]
 
   form.value = {
     tgl: new Date().toISOString().split('T')[0],
-    id_tahun_ajaran: store.tapels.value[0]?.id_tahun_ajaran || 1,
-    id_user: store.currentUser.value.id_user,
+    id_tahun_ajaran: tapels.value[0]?.id_tahun_ajaran || 1,
+    id_user: currentUser.value.id_user || 1,
     nama_pelapor: 'Ibu Ratna, M.Pd (Guru BK)',
     nis: defaultSiswa?.nis,
     nama_siswa: defaultSiswa?.nama_siswa || '',
@@ -131,29 +146,47 @@ const confirmDelete = (id: number) => {
 
 const handleDelete = async () => {
   if (targetDeleteId.value !== null) {
-    await api.deletePelanggaranSiswa(targetDeleteId.value)
+    await deletePelanggaranSiswa(targetDeleteId.value)
     isDeleteModalOpen.value = false
     targetDeleteId.value = null
   }
 }
 
 const handleQuickStatusChange = async (r: PelanggaranSiswa, newStatus: string) => {
-  await api.updatePelanggaranSiswa(r.id_pelanggaran_siswa, { status_sanksi: newStatus })
+  await updatePelanggaranSiswa(r.id_pelanggaran_siswa, { status_sanksi: newStatus })
 }
 
 const handleSave = async () => {
   if (!form.value.nis || !form.value.nama_siswa || !form.value.nama_pelanggaran) {
-    alert('Mohon lengkapi data siswa dan pelanggaran')
+    alert('Mohon lengkapi data siswa dan jenis pelanggaran')
     return
   }
 
-  if (editingRecord.value) {
-    await api.updatePelanggaranSiswa(editingRecord.value.id_pelanggaran_siswa, form.value)
-  } else {
-    await api.createPelanggaranSiswa(form.value as any)
-  }
+  try {
+    const payload = {
+      ...form.value,
+      nis: Number(form.value.nis),
+      id_kelas: Number(form.value.id_kelas),
+      id_tahun_ajaran: Number(form.value.id_tahun_ajaran || 1),
+      id_user: Number(form.value.id_user || currentUser.value.id_user || 1),
+      id_pelanggaran: Number(form.value.id_pelanggaran),
+      id_kategori_pelanggaran: Number(form.value.id_kategori_pelanggaran),
+      point: Number(form.value.point || 0),
+      catatan: form.value.catatan?.trim() || '-',
+      sanksi: form.value.sanksi?.trim() || 'Teguran lisan dan pembinaan',
+      status_sanksi: form.value.status_sanksi || 'Pending',
+    }
 
-  isFormModalOpen.value = false
+    if (editingRecord.value) {
+      await updatePelanggaranSiswa(editingRecord.value.id_pelanggaran_siswa, payload)
+    } else {
+      await createPelanggaranSiswa(payload as any)
+    }
+
+    isFormModalOpen.value = false
+  } catch (err: any) {
+    alert(err?.message || 'Gagal menyimpan catatan pelanggaran')
+  }
 }
 </script>
 
@@ -176,6 +209,15 @@ const handleSave = async () => {
       </div>
 
       <div class="flex items-center gap-3">
+        <button
+          type="button"
+          @click="loadData"
+          class="w-10 h-10 rounded-full bg-white border border-gray-200/90 text-gray-600 hover:text-gray-900 flex items-center justify-center hover:bg-gray-50 shadow-2xs transition-colors"
+          title="Refresh Data"
+        >
+          <AppIcon name="refresh" size="16" />
+        </button>
+
         <button
           type="button"
           @click="openCreateModal"
@@ -406,7 +448,7 @@ const handleSave = async () => {
                   class="w-full px-4 py-2.5 rounded-xl bg-[#F8F9FA] border border-gray-200 text-sm text-gray-900 focus:outline-none focus:border-[#164E3D]"
                 >
                   <option
-                    v-for="s in store.siswas.value"
+                    v-for="s in siswas"
                     :key="s.nis"
                     :value="s.nis"
                   >
@@ -425,7 +467,7 @@ const handleSave = async () => {
                   class="w-full px-4 py-2.5 rounded-xl bg-[#F8F9FA] border border-gray-200 text-sm text-gray-900 focus:outline-none focus:border-[#164E3D]"
                 >
                   <option
-                    v-for="k in store.kelases.value"
+                    v-for="k in kelases"
                     :key="k.id_kelas"
                     :value="k.id_kelas"
                   >
@@ -444,7 +486,7 @@ const handleSave = async () => {
                   class="w-full px-4 py-2.5 rounded-xl bg-[#F8F9FA] border border-gray-200 text-sm text-gray-900 focus:outline-none focus:border-[#164E3D]"
                 >
                   <option
-                    v-for="p in store.pelanggarans.value"
+                    v-for="p in pelanggarans"
                     :key="p.id_pelanggaran"
                     :value="p.id_pelanggaran"
                   >
@@ -606,7 +648,8 @@ const handleSave = async () => {
     <ModalConfirm
       :is-open="isDeleteModalOpen"
       title="Hapus Catatan Pelanggaran"
-      message="Apakah Anda yakin ingin menghapus catatan pelanggaran siswa ini?"
+      message="Catatan pelanggaran ini akan dipindahkan ke Kotak Sampah. Anda masih dapat memulihkannya nanti jika diperlukan."
+      confirm-text="Ya, Pindahkan ke Sampah"
       @confirm="handleDelete"
       @cancel="isDeleteModalOpen = false"
     />

@@ -2,7 +2,7 @@ import { Elysia, t } from "elysia"
 import { RiwayatKelasController } from "../controller/RiwayatKelasController"
 
 const riwayatKelasParams = t.Object({
-  id_riwayat_kelas: t.String(),
+  id_riwayat_kelas: t.Numeric(),
 })
 
 const riwayatKelasBody = t.Object({

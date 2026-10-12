@@ -1,8 +1,15 @@
 <script setup lang="ts">
 import type { RiwayatKelas } from '~/types'
 
-const api = useApi()
-const store = useDataStore()
+const {
+  riwayatKelases,
+  getRiwayatKelas,
+  createRiwayatKelas,
+  deleteRiwayatKelas,
+} = useRiwayatKelas()
+const { siswas, getSiswa } = useSiswa()
+const { kelases, getKelas } = useKelas()
+const { tapels, getTapel } = useTapel()
 
 const searchQuery = ref('')
 const filterTapel = ref<number | 'all'>('all')
@@ -22,32 +29,36 @@ const form = ref<{
   nis: 20240101,
 })
 
-onMounted(async () => {
+const loadData = async () => {
   await Promise.allSettled([
-    api.getRiwayatKelas(),
-    api.getSiswa(),
-    api.getKelas(),
-    api.getTapel(),
+    getRiwayatKelas(),
+    getSiswa(),
+    getKelas(),
+    getTapel(),
   ])
+}
+
+onMounted(() => {
+  loadData()
 })
 
 const getStudentName = (nis: number) => {
-  const s = store.siswas.value.find((item) => item.nis === nis)
+  const s = siswas.value.find((item) => item.nis === nis)
   return s ? s.nama_siswa : `Siswa NIS ${nis}`
 }
 
 const getClassName = (idKelas: number) => {
-  const k = store.kelases.value.find((item) => item.id_kelas === idKelas)
+  const k = kelases.value.find((item) => item.id_kelas === idKelas)
   return k ? k.nama_kelas : `Kelas #${idKelas}`
 }
 
 const getTapelName = (idTapel: number) => {
-  const t = store.tapels.value.find((item) => item.id_tahun_ajaran === idTapel)
+  const t = tapels.value.find((item) => item.id_tahun_ajaran === idTapel)
   return t ? t.nama : `Tapel #${idTapel}`
 }
 
 const filteredList = computed(() => {
-  return store.riwayatKelases.value.filter((r) => {
+  return riwayatKelases.value.filter((r) => {
     const studentName = getStudentName(r.nis).toLowerCase()
     const matchesSearch =
       !searchQuery.value ||
@@ -66,9 +77,9 @@ const filteredList = computed(() => {
 
 const openCreateModal = () => {
   form.value = {
-    id_tahun_ajaran: store.tapels.value[0]?.id_tahun_ajaran || 1,
-    id_kelas: store.kelases.value[0]?.id_kelas || 1,
-    nis: store.siswas.value[0]?.nis || 20240101,
+    id_tahun_ajaran: tapels.value[0]?.id_tahun_ajaran || 1,
+    id_kelas: kelases.value[0]?.id_kelas || 1,
+    nis: siswas.value[0]?.nis || 20240101,
   }
   isFormModalOpen.value = true
 }
@@ -80,14 +91,14 @@ const confirmDelete = (id: number) => {
 
 const handleDelete = async () => {
   if (targetDeleteId.value !== null) {
-    await api.deleteRiwayatKelas(targetDeleteId.value)
+    await deleteRiwayatKelas(targetDeleteId.value)
     isDeleteModalOpen.value = false
     targetDeleteId.value = null
   }
 }
 
 const handleSave = async () => {
-  await api.createRiwayatKelas(form.value)
+  await createRiwayatKelas(form.value)
   isFormModalOpen.value = false
 }
 </script>
@@ -111,6 +122,15 @@ const handleSave = async () => {
       </div>
 
       <div class="flex items-center gap-3">
+        <button
+          type="button"
+          @click="loadData"
+          class="w-10 h-10 rounded-full bg-white border border-gray-200/90 text-gray-600 hover:text-gray-900 flex items-center justify-center hover:bg-gray-50 shadow-2xs transition-colors"
+          title="Refresh Data"
+        >
+          <AppIcon name="refresh" size="16" />
+        </button>
+
         <button
           type="button"
           @click="openCreateModal"
@@ -145,7 +165,7 @@ const handleSave = async () => {
           >
             <option value="all">Semua Tahun Ajaran</option>
             <option
-              v-for="t in store.tapels.value"
+              v-for="t in tapels"
               :key="t.id_tahun_ajaran"
               :value="t.id_tahun_ajaran"
             >
@@ -162,7 +182,7 @@ const handleSave = async () => {
           >
             <option value="all">Semua Kelas</option>
             <option
-              v-for="k in store.kelases.value"
+              v-for="k in kelases"
               :key="k.id_kelas"
               :value="k.id_kelas"
             >
@@ -276,7 +296,7 @@ const handleSave = async () => {
                 class="w-full px-4 py-2.5 rounded-xl bg-[#F8F9FA] border border-gray-200 text-sm text-gray-900 focus:outline-none focus:border-[#164E3D]"
               >
                 <option
-                  v-for="s in store.siswas.value"
+                  v-for="s in siswas"
                   :key="s.nis"
                   :value="s.nis"
                 >
@@ -293,7 +313,7 @@ const handleSave = async () => {
                 class="w-full px-4 py-2.5 rounded-xl bg-[#F8F9FA] border border-gray-200 text-sm text-gray-900 focus:outline-none focus:border-[#164E3D]"
               >
                 <option
-                  v-for="k in store.kelases.value"
+                  v-for="k in kelases"
                   :key="k.id_kelas"
                   :value="k.id_kelas"
                 >
@@ -310,7 +330,7 @@ const handleSave = async () => {
                 class="w-full px-4 py-2.5 rounded-xl bg-[#F8F9FA] border border-gray-200 text-sm text-gray-900 focus:outline-none focus:border-[#164E3D]"
               >
                 <option
-                  v-for="t in store.tapels.value"
+                  v-for="t in tapels"
                   :key="t.id_tahun_ajaran"
                   :value="t.id_tahun_ajaran"
                 >
@@ -342,7 +362,8 @@ const handleSave = async () => {
     <ModalConfirm
       :is-open="isDeleteModalOpen"
       title="Hapus Penempatan Kelas"
-      message="Apakah Anda yakin ingin menghapus data penempatan kelas siswa ini?"
+      message="Data penempatan kelas ini akan dipindahkan ke Kotak Sampah. Anda masih dapat memulihkannya nanti jika diperlukan."
+      confirm-text="Ya, Pindahkan ke Sampah"
       @confirm="handleDelete"
       @cancel="isDeleteModalOpen = false"
     />

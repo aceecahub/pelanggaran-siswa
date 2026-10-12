@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import type { Kelas } from '~/types'
 
-const api = useApi()
-const store = useDataStore()
+const { kelases, getKelas, createKelas, updateKelas, deleteKelas } = useKelas()
+const { jurusans, getJurusan } = useJurusan()
 
 const searchQuery = ref('')
 const filterJurusan = ref<number | 'all'>('all')
@@ -20,17 +20,22 @@ const form = ref<{
   nama_kelas: '',
 })
 
+const loadData = async () => {
+  await Promise.allSettled([getKelas(), getJurusan()])
+}
+
 onMounted(async () => {
-  await Promise.allSettled([api.getKelas(), api.getJurusan()])
+  await loadData()
 })
 
 const getJurusanName = (idJurusan: number) => {
-  const j = store.jurusans.value.find((item) => item.id_jurusan === idJurusan)
-  return j ? j.nama_jurusan : 'Tidak Diketahui'
+  const j = jurusans.value.find((item) => item.id_jurusan === idJurusan)
+  if (!j) return 'Tidak Diketahui'
+  return j.kd_jurusan ? `${j.nama_jurusan} (${j.kd_jurusan})` : j.nama_jurusan
 }
 
 const filteredKelas = computed(() => {
-  return store.kelases.value.filter((k) => {
+  return kelases.value.filter((k) => {
     const matchesSearch =
       !searchQuery.value ||
       k.nama_kelas.toLowerCase().includes(searchQuery.value.toLowerCase())
@@ -45,7 +50,7 @@ const filteredKelas = computed(() => {
 const openCreateModal = () => {
   editingKelas.value = null
   form.value = {
-    id_jurusan: store.jurusans.value[0]?.id_jurusan || 1,
+    id_jurusan: jurusans.value[0]?.id_jurusan || 1,
     nama_kelas: '',
   }
   isFormModalOpen.value = true
@@ -67,7 +72,7 @@ const confirmDelete = (id: number) => {
 
 const handleDelete = async () => {
   if (targetDeleteId.value !== null) {
-    await api.deleteKelas(targetDeleteId.value)
+    await deleteKelas(targetDeleteId.value)
     isDeleteModalOpen.value = false
     targetDeleteId.value = null
   }
@@ -79,13 +84,21 @@ const handleSave = async () => {
     return
   }
 
-  if (editingKelas.value) {
-    await api.updateKelas(editingKelas.value.id_kelas, form.value)
-  } else {
-    await api.createKelas(form.value)
-  }
+  try {
+    const payload = {
+      nama_kelas: form.value.nama_kelas.trim(),
+      id_jurusan: Number(form.value.id_jurusan),
+    }
 
-  isFormModalOpen.value = false
+    if (editingKelas.value) {
+      await updateKelas(editingKelas.value.id_kelas, payload)
+    } else {
+      await createKelas(payload)
+    }
+    isFormModalOpen.value = false
+  } catch (err: any) {
+    alert(err?.message || 'Gagal menyimpan data kelas')
+  }
 }
 </script>
 
@@ -110,6 +123,15 @@ const handleSave = async () => {
       </div>
 
       <div class="flex items-center gap-3">
+        <button
+          type="button"
+          @click="loadData"
+          class="w-10 h-10 rounded-full bg-white border border-gray-200/90 text-gray-600 hover:text-gray-900 flex items-center justify-center hover:bg-gray-50 shadow-2xs transition-colors"
+          title="Refresh Data"
+        >
+          <AppIcon name="refresh" size="16" />
+        </button>
+
         <button
           type="button"
           @click="openCreateModal"
@@ -143,11 +165,11 @@ const handleSave = async () => {
         >
           <option value="all">Semua Jurusan</option>
           <option
-            v-for="j in store.jurusans.value"
+            v-for="j in jurusans"
             :key="j.id_jurusan"
             :value="j.id_jurusan"
           >
-            {{ j.nama_jurusan }}
+            {{ j.kd_jurusan ? `${j.nama_jurusan} (${j.kd_jurusan})` : j.nama_jurusan }}
           </option>
         </select>
       </div>
@@ -269,11 +291,11 @@ const handleSave = async () => {
                 class="w-full px-4 py-2.5 rounded-xl bg-[#F8F9FA] border border-gray-200 text-sm text-gray-900 focus:outline-none focus:border-[#164E3D]"
               >
                 <option
-                  v-for="j in store.jurusans.value"
+                  v-for="j in jurusans"
                   :key="j.id_jurusan"
                   :value="j.id_jurusan"
                 >
-                  {{ j.nama_jurusan }}
+                  {{ j.kd_jurusan ? `${j.nama_jurusan} (${j.kd_jurusan})` : j.nama_jurusan }}
                 </option>
               </select>
             </div>
@@ -301,7 +323,8 @@ const handleSave = async () => {
     <ModalConfirm
       :is-open="isDeleteModalOpen"
       title="Hapus Data Kelas"
-      message="Apakah Anda yakin ingin menghapus kelas ini? Tindakan ini akan memindahkan data kelas ke sampah."
+      message="Data kelas ini akan dipindahkan ke Kotak Sampah. Anda masih dapat memulihkannya nanti jika diperlukan."
+      confirm-text="Ya, Pindahkan ke Sampah"
       @confirm="handleDelete"
       @cancel="isDeleteModalOpen = false"
     />

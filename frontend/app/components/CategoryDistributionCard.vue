@@ -1,8 +1,9 @@
 <script setup lang="ts">
-const store = useDataStore()
+const { pelanggaranSiswas } = usePelanggaranSiswa()
+const { kategoris } = useKategoriPelanggaran()
 
 const categoryStats = computed(() => {
-  const records = store.pelanggaranSiswas.value
+  const records = pelanggaranSiswas.value
   const total = records.length || 1
 
   // Color & Icon themes for categories
@@ -14,7 +15,7 @@ const categoryStats = computed(() => {
   ]
 
   // Map each category
-  return store.kategoris.value.map((kat, idx) => {
+  return kategoris.value.map((kat, idx) => {
     const theme = themes[idx % themes.length]
     // Filter records matching this category
     const matching = records.filter(
@@ -37,7 +38,7 @@ const categoryStats = computed(() => {
 </script>
 
 <template>
-  <div class="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm flex flex-col justify-between h-full select-none">
+  <div class="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm flex flex-col h-full select-none">
     <!-- Header -->
     <div class="flex items-center justify-between mb-4">
       <div>
@@ -57,7 +58,7 @@ const categoryStats = computed(() => {
     </div>
 
     <!-- Category Distribution Items (Donezo project list style) -->
-    <div v-if="categoryStats.length > 0" class="space-y-3.5 my-auto">
+    <div v-if="categoryStats.length > 0" class="space-y-3.5 mt-0">
       <div
         v-for="cat in categoryStats"
         :key="cat.id"
@@ -104,7 +105,7 @@ const categoryStats = computed(() => {
     </div>
 
     <!-- Bottom link -->
-    <div class="pt-3 border-t border-gray-50 flex items-center justify-between text-xs text-gray-500">
+    <div class="mt-auto pt-3 border-t border-gray-50 flex items-center justify-between text-xs text-gray-500">
       <span>Kelola katalog tata tertib</span>
       <NuxtLink to="/master/kategori-pelanggaran" class="text-[#164E3D] hover:underline font-semibold text-[11px]">
         Master Kategori →

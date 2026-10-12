@@ -13,7 +13,7 @@ export interface Siswa {
   pekerjaan_ibu: string
   alamat_ortu: string
   alamat: string
-  status_aktif: 'Aktif' | 'Tidak Aktif' | 'Lulus' | 'Pindah' | string
+  status_aktif: 'aktif' | 'nonaktif' | 'lulus' | 'pindah' | string
   status_delete?: number
   created_at?: string
   updated_at?: string
@@ -21,6 +21,7 @@ export interface Siswa {
 
 export interface Jurusan {
   id_jurusan: number
+  kd_jurusan: string
   nama_jurusan: string
   status?: string
   status_delete?: number
@@ -59,7 +60,7 @@ export interface Pelanggaran {
   id_pelanggaran: number
   id_kategori_pelanggaran: number
   nama_pelanggaran: string
-  tingkatan: 'Ringan' | 'Sedang' | 'Berat' | string
+  tingkatan: 'ringan' | 'sedang' | 'berat' | string
   bobot_point: number
   status_delete?: number
   created_at?: string
@@ -83,7 +84,7 @@ export interface PelanggaranSiswa {
   point: number
   catatan: string
   sanksi: string
-  status_sanksi: 'Pending' | 'Dalam Proses' | 'Selesai' | string
+  status_sanksi: 'proses' | 'diterima' | 'ditolak' | string
   status_delete?: number
   created_at?: string
   updated_at?: string

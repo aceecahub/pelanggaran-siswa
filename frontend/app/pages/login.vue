@@ -4,7 +4,7 @@ definePageMeta({
 })
 
 const router = useRouter()
-const store = useDataStore()
+const { currentUser } = useUser()
 const config = useRuntimeConfig()
 const apiBase = config.public.apiBase || 'http://localhost:5000'
 
@@ -33,7 +33,7 @@ const handleLogin = async () => {
         role: res.data.user?.role || 'admin',
         token: res.data.accessToken,
       }
-      store.currentUser.value = userObj
+      currentUser.value = userObj
       if (import.meta.client) {
         localStorage.setItem('sikap_auth_user', JSON.stringify(userObj))
       }

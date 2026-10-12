@@ -71,10 +71,15 @@ export const JurusanController = {
           ? body.nama_jurusan.trim()
           : ""
 
-      if (!namaInput) {
+      const kdInput =
+        typeof body?.kd_jurusan === "string"
+          ? body.kd_jurusan.trim()
+          : ""
+
+      if (!namaInput || !kdInput) {
         return {
           status: 400,
-          message: "Nama jurusan tidak boleh kosong",
+          message: "Nama dan kode jurusan tidak boleh kosong",
         }
       }
 
@@ -92,7 +97,7 @@ export const JurusanController = {
         }
       }
 
-      const jurusan = await JurusanService.create(namaInput)
+      const jurusan = await JurusanService.create(kdInput, namaInput)
 
       return {
         status: 201,
@@ -135,6 +140,46 @@ export const JurusanController = {
       }
 
       const dataToUpdate: Record<string, any> = {}
+
+      if (body.kd_jurusan !== undefined) {
+        if (typeof body.kd_jurusan !== "string") {
+          return {
+            status: 400,
+            message: "Kode jurusan harus berupa teks",
+          }
+        }
+
+        const kdInput = body.kd_jurusan.trim()
+
+        if (!kdInput) {
+          return {
+            status: 400,
+            message: "Kode jurusan tidak boleh kosong",
+          }
+        }
+
+        if (
+          kdInput.toLowerCase() !==
+          (existingData.kd_jurusan || "").toLowerCase()
+        ) {
+          const allJurusan = await JurusanService.getAll()
+
+          const isKdTaken = allJurusan.some(
+            (j: any) =>
+              (j.kd_jurusan || "").toLowerCase() === kdInput.toLowerCase() &&
+              j.id_jurusan !== id
+          )
+
+          if (isKdTaken) {
+            return {
+              status: 409,
+              message: `Kode jurusan '${kdInput}' sudah digunakan oleh data lain`,
+            }
+          }
+        }
+
+        dataToUpdate.kd_jurusan = kdInput
+      }
 
       if (body.nama_jurusan !== undefined) {
         if (typeof body.nama_jurusan !== "string") {

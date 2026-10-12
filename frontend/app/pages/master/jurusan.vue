@@ -1,8 +1,16 @@
 <script setup lang="ts">
 import type { Jurusan } from '~/types'
 
-const api = useApi()
-const store = useDataStore()
+// Menggunakan composable useJurusan per modul
+const {
+  jurusans,
+  loading,
+  error,
+  getJurusan,
+  createJurusan,
+  updateJurusan,
+  deleteJurusan,
+} = useJurusan()
 
 const searchQuery = ref('')
 const isFormModalOpen = ref(false)
@@ -11,35 +19,44 @@ const editingJurusan = ref<Jurusan | null>(null)
 const targetDeleteId = ref<number | null>(null)
 
 const form = ref<{
+  kd_jurusan: string
   nama_jurusan: string
   status: string
 }>({
+  kd_jurusan: '',
   nama_jurusan: '',
   status: 'Aktif',
 })
 
+const loadData = async () => {
+  await getJurusan()
+}
+
 onMounted(async () => {
-  await api.getJurusan()
+  await loadData()
 })
 
 const filteredJurusan = computed(() => {
-  return store.jurusans.value.filter((j) => {
+  return jurusans.value.filter((j) => {
+    if (!searchQuery.value) return true
+    const q = searchQuery.value.toLowerCase()
     return (
-      !searchQuery.value ||
-      j.nama_jurusan.toLowerCase().includes(searchQuery.value.toLowerCase())
+      (j.kd_jurusan && j.kd_jurusan.toLowerCase().includes(q)) ||
+      j.nama_jurusan.toLowerCase().includes(q)
     )
   })
 })
 
 const openCreateModal = () => {
   editingJurusan.value = null
-  form.value = { nama_jurusan: '', status: 'Aktif' }
+  form.value = { kd_jurusan: '', nama_jurusan: '', status: 'Aktif' }
   isFormModalOpen.value = true
 }
 
 const openEditModal = (jurusan: Jurusan) => {
   editingJurusan.value = jurusan
   form.value = {
+    kd_jurusan: jurusan.kd_jurusan || '',
     nama_jurusan: jurusan.nama_jurusan,
     status: jurusan.status || 'Aktif',
   }
@@ -53,25 +70,44 @@ const confirmDelete = (id: number) => {
 
 const handleDelete = async () => {
   if (targetDeleteId.value !== null) {
-    await api.deleteJurusan(targetDeleteId.value)
-    isDeleteModalOpen.value = false
-    targetDeleteId.value = null
+    try {
+      await deleteJurusan(targetDeleteId.value)
+      isDeleteModalOpen.value = false
+      targetDeleteId.value = null
+    } catch (err: any) {
+      alert(err?.message || 'Gagal menghapus jurusan')
+    }
   }
 }
 
 const handleSave = async () => {
+  if (!form.value.kd_jurusan.trim()) {
+    alert('Kode jurusan wajib diisi')
+    return
+  }
   if (!form.value.nama_jurusan.trim()) {
     alert('Nama jurusan wajib diisi')
     return
   }
 
-  if (editingJurusan.value) {
-    await api.updateJurusan(editingJurusan.value.id_jurusan, form.value)
-  } else {
-    await api.createJurusan(form.value)
+  try {
+    if (editingJurusan.value) {
+      await updateJurusan(editingJurusan.value.id_jurusan, {
+        kd_jurusan: form.value.kd_jurusan.trim().toUpperCase(),
+        nama_jurusan: form.value.nama_jurusan.trim(),
+        status: form.value.status,
+      })
+    } else {
+      await createJurusan({
+        kd_jurusan: form.value.kd_jurusan.trim().toUpperCase(),
+        nama_jurusan: form.value.nama_jurusan.trim(),
+        status: form.value.status,
+      })
+    }
+    isFormModalOpen.value = false
+  } catch (err: any) {
+    alert(err?.message || 'Gagal menyimpan data jurusan')
   }
-
-  isFormModalOpen.value = false
 }
 </script>
 
@@ -91,11 +127,20 @@ const handleSave = async () => {
           Master Data Jurusan
         </h1>
         <p class="text-sm text-gray-500 mt-0.5">
-          Kelola daftar kompetensi keahlian dan status program jurusan.
+          Kelola kode keahlian, nama jurusan, dan status program kejuruan.
         </p>
       </div>
 
       <div class="flex items-center gap-3">
+        <button
+          type="button"
+          @click="loadData"
+          class="w-10 h-10 rounded-full bg-white border border-gray-200/90 text-gray-600 hover:text-gray-900 flex items-center justify-center hover:bg-gray-50 shadow-2xs transition-colors"
+          title="Refresh Data"
+        >
+          <AppIcon name="refresh" size="16" />
+        </button>
+
         <button
           type="button"
           @click="openCreateModal"
@@ -116,7 +161,7 @@ const handleSave = async () => {
         <input
           v-model="searchQuery"
           type="text"
-          placeholder="Cari nama jurusan..."
+          placeholder="Cari kode atau nama jurusan..."
           class="w-full pl-10 pr-4 py-2 rounded-full bg-[#F8F9FA] border border-gray-200 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#164E3D]/20 focus:border-[#164E3D]"
         />
       </div>
@@ -133,6 +178,7 @@ const handleSave = async () => {
           <thead>
             <tr class="border-b border-gray-100 bg-[#F9FAFB]/70 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
               <th class="py-3.5 px-6">ID</th>
+              <th class="py-3.5 px-6">Kode Jurusan</th>
               <th class="py-3.5 px-6">Nama Jurusan</th>
               <th class="py-3.5 px-6">Status</th>
               <th class="py-3.5 px-6 text-right">Aksi</th>
@@ -148,6 +194,11 @@ const handleSave = async () => {
                 #{{ j.id_jurusan }}
               </td>
               <td class="py-3.5 px-6">
+                <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-mono font-bold bg-[#164E3D]/10 text-[#164E3D] border border-[#164E3D]/20">
+                  {{ j.kd_jurusan || '-' }}
+                </span>
+              </td>
+              <td class="py-3.5 px-6">
                 <div class="flex items-center gap-3">
                   <div class="w-9 h-9 rounded-2xl bg-[#164E3D]/10 text-[#164E3D] font-bold text-xs flex items-center justify-center">
                     <AppIcon name="jurusan" size="17" />
@@ -160,10 +211,10 @@ const handleSave = async () => {
               <td class="py-3.5 px-6">
                 <span
                   class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold"
-                  :class="j.status === 'Aktif' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/60' : 'bg-gray-100 text-gray-600'"
+                  :class="j.status === 'aktif' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/60' : 'bg-gray-100 text-gray-600'"
                 >
-                  <span class="w-1.5 h-1.5 rounded-full" :class="j.status === 'Aktif' ? 'bg-emerald-500' : 'bg-gray-400'" />
-                  {{ j.status || 'Aktif' }}
+                  <span class="w-1.5 h-1.5 rounded-full" :class="j.status === 'aktif' ? 'bg-emerald-500' : 'bg-gray-400'" />
+                  {{ j.status || 'aktif' }}
                 </span>
               </td>
               <td class="py-3.5 px-6 text-right">
@@ -172,6 +223,7 @@ const handleSave = async () => {
                     type="button"
                     @click="openEditModal(j)"
                     class="p-1.5 rounded-lg text-gray-400 hover:text-[#164E3D] hover:bg-emerald-50 transition-colors"
+                    title="Edit Jurusan"
                   >
                     <AppIcon name="edit" size="16" />
                   </button>
@@ -179,6 +231,7 @@ const handleSave = async () => {
                     type="button"
                     @click="confirmDelete(j.id_jurusan)"
                     class="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                    title="Hapus Jurusan"
                   >
                     <AppIcon name="trash" size="16" />
                   </button>
@@ -187,7 +240,7 @@ const handleSave = async () => {
             </tr>
 
             <tr v-if="filteredJurusan.length === 0">
-              <td colspan="4" class="py-12 text-center text-gray-400 text-sm">
+              <td colspan="5" class="py-12 text-center text-gray-400 text-sm">
                 Belum ada data jurusan yang terdaftar.
               </td>
             </tr>
@@ -225,11 +278,25 @@ const handleSave = async () => {
 
           <form @submit.prevent="handleSave" class="mt-6 space-y-4">
             <div>
+              <label class="block text-xs font-semibold text-gray-700 mb-1.5">Kode Jurusan *</label>
+              <input
+                v-model="form.kd_jurusan"
+                type="text"
+                required
+                maxlength="10"
+                placeholder="Misal: RPL, TKJ, DKV"
+                class="w-full px-4 py-2.5 rounded-xl bg-[#F8F9FA] border border-gray-200 text-sm text-gray-900 uppercase font-mono tracking-wider focus:outline-none focus:ring-2 focus:ring-[#164E3D]/20 focus:border-[#164E3D]"
+              />
+              <p class="text-[11px] text-gray-400 mt-1">Kode singkatan keahlian (maksimal 10 karakter).</p>
+            </div>
+
+            <div>
               <label class="block text-xs font-semibold text-gray-700 mb-1.5">Nama Jurusan *</label>
               <input
                 v-model="form.nama_jurusan"
                 type="text"
                 required
+                maxlength="25"
                 placeholder="Misal: Rekayasa Perangkat Lunak"
                 class="w-full px-4 py-2.5 rounded-xl bg-[#F8F9FA] border border-gray-200 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#164E3D]/20 focus:border-[#164E3D]"
               />
@@ -241,8 +308,8 @@ const handleSave = async () => {
                 v-model="form.status"
                 class="w-full px-4 py-2.5 rounded-xl bg-[#F8F9FA] border border-gray-200 text-sm text-gray-900 focus:outline-none focus:border-[#164E3D]"
               >
-                <option value="Aktif">Aktif</option>
-                <option value="Nonaktif">Nonaktif</option>
+                <option value="aktif">aktif</option>
+                <option value="nonaktif">nonaktif</option>
               </select>
             </div>
 
@@ -269,10 +336,10 @@ const handleSave = async () => {
     <ModalConfirm
       :is-open="isDeleteModalOpen"
       title="Hapus Data Jurusan"
-      message="Apakah Anda yakin ingin menghapus data jurusan ini?"
+      message="Data jurusan ini akan dipindahkan ke Kotak Sampah. Anda masih dapat memulihkannya nanti jika diperlukan."
+      confirm-text="Ya, Pindahkan ke Sampah"
       @confirm="handleDelete"
       @cancel="isDeleteModalOpen = false"
     />
   </div>
 </template>
-

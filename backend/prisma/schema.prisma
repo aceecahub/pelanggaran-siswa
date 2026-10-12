@@ -39,7 +39,7 @@ model Sampah {
   // Relations
   user User @relation(fields: [id_user], references: [id_user])
 
-  @@map("sampah")
+  @@map("sampahs")
 }
 
 model ActivityLog {
@@ -56,7 +56,7 @@ model ActivityLog {
   // Relations
   user User @relation(fields: [id_user], references: [id_user])
 
-  @@map("activity_log")
+  @@map("activity_logs")
 }
 
 model Siswa {
@@ -146,7 +146,7 @@ model TahunAjaran {
   riwayat_kelas      RiwayatKelas[]
   pelanggaran_siswas PelanggaranSiswa[]
 
-  @@map("tahun_ajaran")
+  @@map("tahun_ajarans")
 }
 
 model Kelas {
@@ -167,6 +167,7 @@ model Kelas {
 
 model Jurusan {
   id_jurusan   Int @id @default(autoincrement())
+  kd_jurusan   String   @db.VarChar(10) @unique
   nama_jurusan String   @db.VarChar(25)
   status       String   
   status_delete Int      @default(0)
@@ -207,5 +208,5 @@ model KategoriPelanggaran {
   pelanggaran        Pelanggaran[]
   pelanggaran_siswas PelanggaranSiswa[]
 
-  @@map("kategori_pelanggaran")
+  @@map("kategori_pelanggarans")
 }

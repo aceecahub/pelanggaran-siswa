@@ -44,10 +44,16 @@ const prepareData = (body: any, isCreate = false) => {
 
   for (const field of stringFields) {
     if (body[field] !== undefined) {
-      if (typeof body[field] !== "string" || !body[field].trim()) {
+      const val = typeof body[field] === "string" ? body[field].trim() : String(body[field] || "").trim()
+      if (!val && (field === "catatan" || field === "sanksi")) {
+        data[field] = field === "sanksi" ? "Teguran lisan dan pembinaan" : "-"
+      } else if (!val) {
         throw new Error(`${field} tidak boleh kosong`)
+      } else {
+        data[field] = val
       }
-      data[field] = body[field].trim()
+    } else if (isCreate && (field === "catatan" || field === "sanksi")) {
+      data[field] = field === "sanksi" ? "Teguran lisan dan pembinaan" : "-"
     }
   }
 
@@ -62,14 +68,10 @@ const prepareData = (body: any, isCreate = false) => {
   }
 
   if (body.tgl !== undefined) {
+    const rawTgl = typeof body.tgl === "string" ? body.tgl.split("T")[0] : ""
     const date = new Date(body.tgl)
-    if (
-      typeof body.tgl !== "string" ||
-      !/^\d{4}-\d{2}-\d{2}$/.test(body.tgl) ||
-      Number.isNaN(date.getTime()) ||
-      date.toISOString().slice(0, 10) !== body.tgl
-    ) {
-      throw new Error("Tanggal harus menggunakan format YYYY-MM-DD")
+    if (Number.isNaN(date.getTime())) {
+      throw new Error("Tanggal tidak valid, gunakan format YYYY-MM-DD")
     }
     data.tgl = date
   }
@@ -127,6 +129,7 @@ export const PelanggaranSiswaController = {
   create: async ({ body }: any) => {
     try {
       for (const field of requiredFields) {
+        if (field === "catatan" || field === "sanksi") continue
         if (
           body[field] === undefined ||
           body[field] === null ||

@@ -1,15 +1,14 @@
 <script setup lang="ts">
 import type { PelanggaranSiswa } from '~/types'
 
-const store = useDataStore()
-const api = useApi()
+const { pelanggaranSiswas, updatePelanggaranSiswa } = usePelanggaranSiswa()
 
 // Find the most urgent violation (Pending status, sorted by highest points)
 const urgentCase = computed<PelanggaranSiswa | null>(() => {
-  const pendingCases = store.pelanggaranSiswas.value.filter((p) => p.status_sanksi === 'Pending')
+  const pendingCases = pelanggaranSiswas.value.filter((p) => p.status_sanksi === 'Pending')
   if (pendingCases.length === 0) {
     // If no pending, find cases currently in progress
-    const inProgressCases = store.pelanggaranSiswas.value.filter((p) => p.status_sanksi === 'Dalam Proses')
+    const inProgressCases = pelanggaranSiswas.value.filter((p) => p.status_sanksi === 'Dalam Proses')
     return inProgressCases[0] || null
   }
   // Sort by point descending (highest point = most severe)
@@ -19,7 +18,7 @@ const urgentCase = computed<PelanggaranSiswa | null>(() => {
 const handleStartCounseling = async () => {
   if (urgentCase.value) {
     if (urgentCase.value.status_sanksi === 'Pending') {
-      await api.updatePelanggaranSiswa(urgentCase.value.id_pelanggaran_siswa, {
+      await updatePelanggaranSiswa(urgentCase.value.id_pelanggaran_siswa, {
         status_sanksi: 'Dalam Proses',
       })
       alert(`Sesi konseling untuk ${urgentCase.value.nama_siswa} telah dimulai! Status sanksi diperbarui ke "Dalam Proses".`)

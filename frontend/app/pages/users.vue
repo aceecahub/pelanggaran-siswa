@@ -1,8 +1,7 @@
 <script setup lang="ts">
 import type { User } from '~/types'
 
-const api = useApi()
-const store = useDataStore()
+const { users, getUsers, updateUser, deleteUser, loading } = useUser()
 
 const searchQuery = ref('')
 const isEditModalOpen = ref(false)
@@ -20,12 +19,16 @@ const form = ref<{
   password: '',
 })
 
-onMounted(async () => {
-  await api.getUsers()
+const loadData = async () => {
+  await getUsers()
+}
+
+onMounted(() => {
+  loadData()
 })
 
 const filteredUsers = computed(() => {
-  return store.users.value.filter((u) => {
+  return users.value.filter((u) => {
     return (
       !searchQuery.value ||
       u.username.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
@@ -51,7 +54,7 @@ const confirmDelete = (id: number) => {
 
 const handleDelete = async () => {
   if (targetDeleteId.value !== null) {
-    await api.deleteUser(targetDeleteId.value)
+    await deleteUser(targetDeleteId.value)
     isDeleteModalOpen.value = false
     targetDeleteId.value = null
   }
@@ -61,7 +64,7 @@ const handleSave = async () => {
   if (editingUser.value) {
     const payload: any = { role: form.value.role, username: form.value.username }
     if (form.value.password) payload.password = form.value.password
-    await api.updateUser(editingUser.value.id_user, payload)
+    await updateUser(editingUser.value.id_user, payload)
     isEditModalOpen.value = false
   }
 }
@@ -86,6 +89,15 @@ const handleSave = async () => {
       </div>
 
       <div class="flex items-center gap-3">
+        <button
+          type="button"
+          @click="loadData"
+          class="w-10 h-10 rounded-full bg-white border border-gray-200/90 text-gray-600 hover:text-gray-900 flex items-center justify-center hover:bg-gray-50 shadow-2xs transition-colors"
+          title="Refresh Data"
+        >
+          <AppIcon name="refresh" size="16" />
+        </button>
+
         <span class="px-4 py-2 rounded-full bg-emerald-50 text-[#164E3D] text-xs font-semibold">
           Role-Based Access Control
         </span>
@@ -270,7 +282,8 @@ const handleSave = async () => {
     <ModalConfirm
       :is-open="isDeleteModalOpen"
       title="Hapus Akun Pengguna"
-      message="Apakah Anda yakin ingin menonaktifkan atau menghapus akun pengguna ini?"
+      message="Data akun pengguna ini akan dipindahkan ke Kotak Sampah. Anda masih dapat memulihkannya nanti jika diperlukan."
+      confirm-text="Ya, Pindahkan ke Sampah"
       @confirm="handleDelete"
       @cancel="isDeleteModalOpen = false"
     />

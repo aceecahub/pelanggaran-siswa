@@ -15,9 +15,10 @@ export const JurusanService = {
             }
         })
     },
-    create: async ( nama_jurusan: string) => {
+    create: async ( kd_jurusan: string, nama_jurusan: string) => {
         return await prisma.jurusan.create({
             data: {
+                kd_jurusan: kd_jurusan,
                 nama_jurusan: nama_jurusan,
                 status: "aktif",
                 status_delete: 0
@@ -27,6 +28,7 @@ export const JurusanService = {
     update: async (
         id_jurusan: number,
         data: {
+            kd_jurusan?: string
             nama_jurusan?: string
             status?: string
             status_delete?: number

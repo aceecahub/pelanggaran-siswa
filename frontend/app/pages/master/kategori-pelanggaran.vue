@@ -1,8 +1,13 @@
 <script setup lang="ts">
 import type { KategoriPelanggaran } from '~/types'
 
-const api = useApi()
-const store = useDataStore()
+const {
+  kategoris,
+  getKategori,
+  createKategori,
+  updateKategori,
+  deleteKategori,
+} = useKategoriPelanggaran()
 
 const searchQuery = ref('')
 const isFormModalOpen = ref(false)
@@ -16,12 +21,16 @@ const form = ref<{
   nama: '',
 })
 
+const loadData = async () => {
+  await getKategori()
+}
+
 onMounted(async () => {
-  await api.getKategori()
+  await loadData()
 })
 
 const filteredKategori = computed(() => {
-  return store.kategoris.value.filter((k) => {
+  return kategoris.value.filter((k) => {
     return (
       !searchQuery.value ||
       k.nama.toLowerCase().includes(searchQuery.value.toLowerCase())
@@ -48,9 +57,13 @@ const confirmDelete = (id: number) => {
 
 const handleDelete = async () => {
   if (targetDeleteId.value !== null) {
-    await api.deleteKategori(targetDeleteId.value)
-    isDeleteModalOpen.value = false
-    targetDeleteId.value = null
+    try {
+      await deleteKategori(targetDeleteId.value)
+      isDeleteModalOpen.value = false
+      targetDeleteId.value = null
+    } catch (err: any) {
+      alert(err?.message || 'Gagal menghapus kategori')
+    }
   }
 }
 
@@ -60,13 +73,16 @@ const handleSave = async () => {
     return
   }
 
-  if (editingKategori.value) {
-    await api.updateKategori(editingKategori.value.id_kategori_pelanggaran, form.value)
-  } else {
-    await api.createKategori(form.value)
+  try {
+    if (editingKategori.value) {
+      await updateKategori(editingKategori.value.id_kategori_pelanggaran, form.value)
+    } else {
+      await createKategori(form.value)
+    }
+    isFormModalOpen.value = false
+  } catch (err: any) {
+    alert(err?.message || 'Gagal menyimpan kategori')
   }
-
-  isFormModalOpen.value = false
 }
 </script>
 
@@ -91,6 +107,15 @@ const handleSave = async () => {
       </div>
 
       <div class="flex items-center gap-3">
+        <button
+          type="button"
+          @click="loadData"
+          class="w-10 h-10 rounded-full bg-white border border-gray-200/90 text-gray-600 hover:text-gray-900 flex items-center justify-center hover:bg-gray-50 shadow-2xs transition-colors"
+          title="Refresh Data"
+        >
+          <AppIcon name="refresh" size="16" />
+        </button>
+
         <button
           type="button"
           @click="openCreateModal"
@@ -243,7 +268,8 @@ const handleSave = async () => {
     <ModalConfirm
       :is-open="isDeleteModalOpen"
       title="Hapus Kategori Pelanggaran"
-      message="Apakah Anda yakin ingin menghapus kategori ini?"
+      message="Data kategori ini akan dipindahkan ke Kotak Sampah. Anda masih dapat memulihkannya nanti jika diperlukan."
+      confirm-text="Ya, Pindahkan ke Sampah"
       @confirm="handleDelete"
       @cancel="isDeleteModalOpen = false"
     />

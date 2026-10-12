@@ -2,7 +2,7 @@ import { Elysia, t } from "elysia";
 import { TapelController } from "../controller/TapelController";
 
 const TapelParams = t.Object({
-  id_tahun_ajaran: t.Number(),
+  id_tahun_ajaran: t.Numeric(),
 });
 
 const TapelBody = t.Object({

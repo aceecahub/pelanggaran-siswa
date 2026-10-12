@@ -1,26 +1,31 @@
 <script setup lang="ts">
-const store = useDataStore()
+const { pelanggaranSiswas } = usePelanggaranSiswa();
+const { siswas } = useSiswa();
+const { kelases } = useKelas();
 
 // Calculate students ranked by highest accumulated points
 const rankedStudents = computed(() => {
-  const records = store.pelanggaranSiswas.value
-  const studentMap = new Map<number, {
-    nis: number
-    nama: string
-    kelas: string
-    totalPoints: number
-    violationsCount: number
-    latestStatus: string
-  }>()
+  const records = pelanggaranSiswas.value;
+  const studentMap = new Map<
+    number,
+    {
+      nis: number;
+      nama: string;
+      kelas: string;
+      totalPoints: number;
+      violationsCount: number;
+      latestStatus: string;
+    }
+  >();
 
   // Aggregate points per student from violations
   records.forEach((r) => {
-    const existing = studentMap.get(r.nis)
-    const points = Number(r.point) || 0
+    const existing = studentMap.get(r.nis);
+    const points = Number(r.point) || 0;
     if (existing) {
-      existing.totalPoints += points
-      existing.violationsCount++
-      if (r.status_sanksi === 'Pending') existing.latestStatus = 'Pending'
+      existing.totalPoints += points;
+      existing.violationsCount++;
+      if (r.status_sanksi === "Pending") existing.latestStatus = "Pending";
     } else {
       studentMap.set(r.nis, {
         nis: r.nis,
@@ -29,44 +34,63 @@ const rankedStudents = computed(() => {
         totalPoints: points,
         violationsCount: 1,
         latestStatus: r.status_sanksi,
-      })
+      });
     }
-  })
+  });
 
-  // If no violations yet, show top registered students from store
+  // If no violations yet, show top registered students
   if (studentMap.size === 0) {
-    return store.siswas.value.slice(0, 4).map((s, idx) => ({
+    return siswas.value.slice(0, 4).map((s, idx) => ({
       nis: s.nis,
       nama: s.nama_siswa,
-      kelas: store.kelases.value[idx % store.kelases.value.length]?.nama_kelas || '-',
+      kelas:
+        kelases.value[idx % (kelases.value.length || 1)]?.nama_kelas ||
+        "-",
       totalPoints: 0,
       violationsCount: 0,
-      latestStatus: 'Bersih',
-    }))
+      latestStatus: "Bersih",
+    }));
   }
 
   // Convert map to array and sort by total points descending
   return Array.from(studentMap.values())
     .sort((a, b) => b.totalPoints - a.totalPoints)
-    .slice(0, 4)
-})
+    .slice(0, 4);
+});
 
 const getStatusBadge = (points: number, status: string) => {
   if (points >= 100) {
-    return { text: 'SP 3 (Skorsing)', class: 'bg-rose-100 text-rose-800 border-rose-300' }
+    return {
+      text: "SP 3 (Skorsing)",
+      class: "bg-rose-100 text-rose-800 border-rose-300",
+    };
   } else if (points >= 50) {
-    return { text: 'SP 2 (Ortu)', class: 'bg-amber-100 text-amber-800 border-amber-300' }
+    return {
+      text: "SP 2 (Ortu)",
+      class: "bg-amber-100 text-amber-800 border-amber-300",
+    };
   } else if (points >= 25) {
-    return { text: 'SP 1 (Surat)', class: 'bg-yellow-100 text-yellow-800 border-yellow-300' }
+    return {
+      text: "SP 1 (Surat)",
+      class: "bg-yellow-100 text-yellow-800 border-yellow-300",
+    };
   } else if (points > 0) {
-    return { text: 'Teguran Lisan', class: 'bg-blue-50 text-blue-700 border-blue-200' }
+    return {
+      text: "Teguran Lisan",
+      class: "bg-blue-50 text-blue-700 border-blue-200",
+    };
   }
-  return { text: 'Disiplin Baik', class: 'bg-emerald-50 text-emerald-700 border-emerald-200' }
-}
+  return {
+    text: "Disiplin Baik",
+    class: "bg-emerald-50 text-emerald-700 border-emerald-200",
+  };
+};
 </script>
 
 <template>
-  <div class="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm flex flex-col justify-between h-full select-none">
+  <div
+    class="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm flex flex-col h-full select-none"
+  >
     <!-- Header -->
     <div class="flex items-center justify-between mb-4">
       <div>
@@ -86,7 +110,7 @@ const getStatusBadge = (points: number, status: string) => {
     </div>
 
     <!-- Student List (Matches Donezo Team Collaboration style) -->
-    <div v-if="rankedStudents.length > 0" class="space-y-4 my-auto">
+    <div v-if="rankedStudents.length > 0" class="space-y-4 mt-0">
       <div
         v-for="st in rankedStudents"
         :key="st.nis"
@@ -100,20 +124,30 @@ const getStatusBadge = (points: number, status: string) => {
               st.totalPoints >= 50
                 ? 'bg-rose-100 text-rose-800'
                 : st.totalPoints > 0
-                ? 'bg-amber-100 text-amber-800'
-                : 'bg-emerald-100 text-[#164E3D]',
+                  ? 'bg-amber-100 text-amber-800'
+                  : 'bg-emerald-100 text-[#164E3D]',
             ]"
           >
             {{ st.nama.charAt(0) }}
           </div>
 
           <div class="min-w-0">
-            <h4 class="text-xs font-bold text-gray-900 truncate group-hover:text-[#164E3D] transition-colors">
+            <h4
+              class="text-xs font-bold text-gray-900 truncate group-hover:text-[#164E3D] transition-colors"
+            >
               {{ st.nama }}
             </h4>
             <p class="text-[11px] text-gray-400 truncate">
-              {{ st.kelas }} • <span class="font-mono text-gray-600 font-semibold">{{ st.totalPoints }} Poin</span>
-              <span v-if="st.violationsCount > 0" class="text-gray-400 text-[10px]"> ({{ st.violationsCount }} kasus)</span>
+              {{ st.kelas }} •
+              <span class="font-mono text-gray-600 font-semibold"
+                >{{ st.totalPoints }} Poin</span
+              >
+              <span
+                v-if="st.violationsCount > 0"
+                class="text-gray-400 text-[10px]"
+              >
+                ({{ st.violationsCount }} kasus)</span
+              >
             </p>
           </div>
         </div>
@@ -132,12 +166,16 @@ const getStatusBadge = (points: number, status: string) => {
     </div>
 
     <!-- Bottom link -->
-    <div class="pt-3 border-t border-gray-50 flex items-center justify-between text-xs text-gray-500">
+    <div
+      class="mt-auto pt-3 border-t border-gray-50 flex items-center justify-between text-xs text-gray-500"
+    >
       <span>Lihat seluruh daftar siswa</span>
-      <NuxtLink to="/master/siswa" class="text-[#164E3D] hover:underline font-semibold text-[11px]">
+      <NuxtLink
+        to="/master/siswa"
+        class="text-[#164E3D] hover:underline font-semibold text-[11px]"
+      >
         Master Siswa →
       </NuxtLink>
     </div>
   </div>
 </template>
-

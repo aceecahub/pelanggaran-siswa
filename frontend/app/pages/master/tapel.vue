@@ -1,8 +1,7 @@
 <script setup lang="ts">
 import type { TahunAjaran } from '~/types'
 
-const api = useApi()
-const store = useDataStore()
+const { tapels, getTapel, createTapel, updateTapel, deleteTapel } = useTapel()
 
 const searchQuery = ref('')
 const isFormModalOpen = ref(false)
@@ -18,12 +17,16 @@ const form = ref<{
   status: 'Aktif',
 })
 
+const loadData = async () => {
+  await getTapel()
+}
+
 onMounted(async () => {
-  await api.getTapel()
+  await loadData()
 })
 
 const filteredTapel = computed(() => {
-  return store.tapels.value.filter((t) => {
+  return tapels.value.filter((t) => {
     return (
       !searchQuery.value ||
       t.nama.toLowerCase().includes(searchQuery.value.toLowerCase())
@@ -53,9 +56,13 @@ const confirmDelete = (id: number) => {
 
 const handleDelete = async () => {
   if (targetDeleteId.value !== null) {
-    await api.deleteTapel(targetDeleteId.value)
-    isDeleteModalOpen.value = false
-    targetDeleteId.value = null
+    try {
+      await deleteTapel(targetDeleteId.value)
+      isDeleteModalOpen.value = false
+      targetDeleteId.value = null
+    } catch (err: any) {
+      alert(err?.message || 'Gagal menghapus tahun ajaran')
+    }
   }
 }
 
@@ -65,13 +72,16 @@ const handleSave = async () => {
     return
   }
 
-  if (editingTapel.value) {
-    await api.updateTapel(editingTapel.value.id_tahun_ajaran, form.value)
-  } else {
-    await api.createTapel(form.value)
+  try {
+    if (editingTapel.value) {
+      await updateTapel(editingTapel.value.id_tahun_ajaran, form.value)
+    } else {
+      await createTapel(form.value)
+    }
+    isFormModalOpen.value = false
+  } catch (err: any) {
+    alert(err?.message || 'Gagal menyimpan tahun ajaran')
   }
-
-  isFormModalOpen.value = false
 }
 </script>
 
@@ -96,6 +106,15 @@ const handleSave = async () => {
       </div>
 
       <div class="flex items-center gap-3">
+        <button
+          type="button"
+          @click="loadData"
+          class="w-10 h-10 rounded-full bg-white border border-gray-200/90 text-gray-600 hover:text-gray-900 flex items-center justify-center hover:bg-gray-50 shadow-2xs transition-colors"
+          title="Refresh Data"
+        >
+          <AppIcon name="refresh" size="16" />
+        </button>
+
         <button
           type="button"
           @click="openCreateModal"
@@ -160,9 +179,9 @@ const handleSave = async () => {
               <td class="py-3.5 px-6">
                 <span
                   class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold"
-                  :class="t.status === 'Aktif' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/60' : 'bg-gray-100 text-gray-600'"
+                  :class="t.status === 'aktif' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/60' : 'bg-gray-100 text-gray-600'"
                 >
-                  <span class="w-1.5 h-1.5 rounded-full" :class="t.status === 'Aktif' ? 'bg-emerald-500' : 'bg-gray-400'" />
+                  <span class="w-1.5 h-1.5 rounded-full" :class="t.status === 'aktif' ? 'bg-emerald-500' : 'bg-gray-400'" />
                   {{ t.status || 'Aktif' }}
                 </span>
               </td>
@@ -241,8 +260,8 @@ const handleSave = async () => {
                 v-model="form.status"
                 class="w-full px-4 py-2.5 rounded-xl bg-[#F8F9FA] border border-gray-200 text-sm text-gray-900 focus:outline-none focus:border-[#164E3D]"
               >
-                <option value="Aktif">Aktif</option>
-                <option value="Tidak Aktif">Tidak Aktif</option>
+                <option value="aktif">Aktif</option>
+                <option value="nonaktif">Tidak Aktif</option>
               </select>
             </div>
 
@@ -269,7 +288,8 @@ const handleSave = async () => {
     <ModalConfirm
       :is-open="isDeleteModalOpen"
       title="Hapus Tahun Ajaran"
-      message="Apakah Anda yakin ingin menghapus data tahun ajaran ini?"
+      message="Data tahun ajaran ini akan dipindahkan ke Kotak Sampah. Anda masih dapat memulihkannya nanti jika diperlukan."
+      confirm-text="Ya, Pindahkan ke Sampah"
       @confirm="handleDelete"
       @cancel="isDeleteModalOpen = false"
     />

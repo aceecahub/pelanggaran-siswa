@@ -1,8 +1,14 @@
 <script setup lang="ts">
 import type { Pelanggaran } from '~/types'
 
-const api = useApi()
-const store = useDataStore()
+const {
+  pelanggarans,
+  getPelanggaran,
+  createPelanggaran,
+  updatePelanggaran,
+  deletePelanggaran,
+} = usePelanggaran()
+const { kategoris, getKategori } = useKategoriPelanggaran()
 
 const searchQuery = ref('')
 const filterKategori = ref<number | 'all'>('all')
@@ -25,17 +31,21 @@ const form = ref<{
   bobot_point: 5,
 })
 
+const loadData = async () => {
+  await Promise.allSettled([getPelanggaran(), getKategori()])
+}
+
 onMounted(async () => {
-  await Promise.allSettled([api.getPelanggaran(), api.getKategori()])
+  await loadData()
 })
 
 const getKategoriName = (idKategori: number) => {
-  const k = store.kategoris.value.find((item) => item.id_kategori_pelanggaran === idKategori)
+  const k = kategoris.value.find((item) => item.id_kategori_pelanggaran === idKategori)
   return k ? k.nama : 'Lainnya'
 }
 
 const filteredPelanggaran = computed(() => {
-  return store.pelanggarans.value.filter((p) => {
+  return pelanggarans.value.filter((p) => {
     const matchesSearch =
       !searchQuery.value ||
       p.nama_pelanggaran.toLowerCase().includes(searchQuery.value.toLowerCase())
@@ -54,7 +64,7 @@ const filteredPelanggaran = computed(() => {
 const openCreateModal = () => {
   editingPelanggaran.value = null
   form.value = {
-    id_kategori_pelanggaran: store.kategoris.value[0]?.id_kategori_pelanggaran || 1,
+    id_kategori_pelanggaran: kategoris.value[0]?.id_kategori_pelanggaran || 1,
     nama_pelanggaran: '',
     tingkatan: 'Ringan',
     bobot_point: 5,
@@ -80,9 +90,13 @@ const confirmDelete = (id: number) => {
 
 const handleDelete = async () => {
   if (targetDeleteId.value !== null) {
-    await api.deletePelanggaran(targetDeleteId.value)
-    isDeleteModalOpen.value = false
-    targetDeleteId.value = null
+    try {
+      await deletePelanggaran(targetDeleteId.value)
+      isDeleteModalOpen.value = false
+      targetDeleteId.value = null
+    } catch (err: any) {
+      alert(err?.message || 'Gagal menghapus pelanggaran')
+    }
   }
 }
 
@@ -92,13 +106,23 @@ const handleSave = async () => {
     return
   }
 
-  if (editingPelanggaran.value) {
-    await api.updatePelanggaran(editingPelanggaran.value.id_pelanggaran, form.value)
-  } else {
-    await api.createPelanggaran(form.value)
-  }
+  try {
+    const payload = {
+      nama_pelanggaran: form.value.nama_pelanggaran.trim(),
+      id_kategori_pelanggaran: Number(form.value.id_kategori_pelanggaran),
+      tingkatan: form.value.tingkatan,
+      bobot_point: Number(form.value.bobot_point || 0),
+    }
 
-  isFormModalOpen.value = false
+    if (editingPelanggaran.value) {
+      await updatePelanggaran(editingPelanggaran.value.id_pelanggaran, payload)
+    } else {
+      await createPelanggaran(payload)
+    }
+    isFormModalOpen.value = false
+  } catch (err: any) {
+    alert(err?.message || 'Gagal menyimpan pelanggaran')
+  }
 }
 </script>
 
@@ -123,6 +147,15 @@ const handleSave = async () => {
       </div>
 
       <div class="flex items-center gap-3">
+        <button
+          type="button"
+          @click="loadData"
+          class="w-10 h-10 rounded-full bg-white border border-gray-200/90 text-gray-600 hover:text-gray-900 flex items-center justify-center hover:bg-gray-50 shadow-2xs transition-colors"
+          title="Refresh Data"
+        >
+          <AppIcon name="refresh" size="16" />
+        </button>
+
         <button
           type="button"
           @click="openCreateModal"
@@ -157,7 +190,7 @@ const handleSave = async () => {
           >
             <option value="all">Semua Kategori</option>
             <option
-              v-for="k in store.kategoris.value"
+              v-for="k in kategoris"
               :key="k.id_kategori_pelanggaran"
               :value="k.id_kategori_pelanggaran"
             >
@@ -322,7 +355,7 @@ const handleSave = async () => {
                 class="w-full px-4 py-2.5 rounded-xl bg-[#F8F9FA] border border-gray-200 text-sm text-gray-900 focus:outline-none focus:border-[#164E3D]"
               >
                 <option
-                  v-for="k in store.kategoris.value"
+                  v-for="k in kategoris"
                   :key="k.id_kategori_pelanggaran"
                   :value="k.id_kategori_pelanggaran"
                 >
@@ -379,8 +412,9 @@ const handleSave = async () => {
 
     <ModalConfirm
       :is-open="isDeleteModalOpen"
-      title="Hapus Jenis Pelanggaran"
-      message="Apakah Anda yakin ingin menghapus jenis pelanggaran ini?"
+      title="Hapus Data Pelanggaran"
+      message="Data pelanggaran ini akan dipindahkan ke Kotak Sampah. Anda masih dapat memulihkannya nanti jika diperlukan."
+      confirm-text="Ya, Pindahkan ke Sampah"
       @confirm="handleDelete"
       @cancel="isDeleteModalOpen = false"
     />

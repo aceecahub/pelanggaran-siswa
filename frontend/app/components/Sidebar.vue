@@ -1,7 +1,7 @@
 <script setup lang="ts">
 const route = useRoute()
 const router = useRouter()
-const store = useDataStore()
+const { pelanggaranSiswas } = usePelanggaranSiswa()
 
 // State for master dropdown: default open if current route is under /master
 const isMasterOpen = ref(route.path.startsWith('/master'))
@@ -30,7 +30,7 @@ const masterSubmenus = [
 ]
 
 const pendingViolationsCount = computed(() => {
-  return store.pelanggaranSiswas.value.filter((p) => p.status_sanksi === 'Pending').length
+  return pelanggaranSiswas.value.filter((p) => p.status_sanksi === 'Pending').length
 })
 
 const handleLogout = () => {
@@ -43,10 +43,10 @@ const handleLogout = () => {
 <template>
   <aside class="w-64 h-full bg-white border-r border-gray-100 flex flex-col justify-between p-5 select-none overflow-y-auto">
     <div class="space-y-6">
-      <!-- Logo Branding (Donezo / SIKAP style) -->
+      <!-- Logo Branding (SIKAP / SIKAP style) -->
       <NuxtLink to="/" class="flex items-center gap-3 px-2 py-1 group">
         <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-[#164E3D] to-[#2B7A5F] flex items-center justify-center text-white shadow-md shadow-[#164E3D]/20 transition-transform group-hover:scale-105">
-          <!-- Circular swirled emblem like Donezo -->
+          <!-- Circular swirled emblem like SIKAP -->
           <svg class="w-6 h-6 text-white" viewBox="0 0 24 24" fill="none">
             <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-dasharray="32 16" />
             <circle cx="12" cy="12" r="4.5" fill="currentColor" opacity="0.9" />
@@ -54,7 +54,7 @@ const handleLogout = () => {
         </div>
         <div>
           <div class="text-xl font-bold tracking-tight text-gray-900 flex items-center gap-1.5">
-            Donezo <span class="text-xs px-1.5 py-0.5 rounded-full bg-[#164E3D]/10 text-[#164E3D] font-medium">SIKAP</span>
+            SIKAP
           </div>
           <p class="text-[11px] text-gray-400 font-normal">Disiplin & Konseling</p>
         </div>
@@ -154,7 +154,7 @@ const handleLogout = () => {
               />
               <span>Pelanggaran Siswa</span>
             </div>
-            <!-- Donezo style badge e.g. '12+' -->
+            <!-- SIKAP style badge e.g. '12+' -->
             <span
               v-if="pendingViolationsCount > 0"
               class="px-2 py-0.5 text-[11px] font-semibold rounded-md bg-[#164E3D] text-white tracking-wide"

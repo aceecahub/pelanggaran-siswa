@@ -1,5 +1,5 @@
 <script setup lang="ts">
-const store = useDataStore()
+const { currentUser } = useUser()
 const emit = defineEmits<{
   (e: 'toggleSidebar'): void
 }>()
@@ -95,10 +95,10 @@ const handleSearch = () => {
 
         <div class="hidden sm:block text-left">
           <h4 class="text-sm font-semibold text-gray-900 leading-tight">
-            {{ store.currentUser.value?.username || 'Admin' }}
+            {{ currentUser?.username || 'Admin' }}
           </h4>
           <p class="text-xs text-gray-400 font-normal leading-tight capitalize">
-            {{ store.currentUser.value?.role || 'Administrator' }}
+            {{ currentUser?.role || 'Administrator' }}
           </p>
         </div>
       </div>
