@@ -102,23 +102,20 @@ export const PelanggaranController = {
         }
       }
       const idNumber = Number(params.id_pelanggaran)
-      const idKategori = body?.id_kategori_pelanggaran
-      const namaInput = body?.nama_pelanggaran?.trim()
-      const tingkatanInput = body?.tingkatan?.trim()
-      const bobotPointInput = body?.bobot_point
-      const statusDeleteInput = body?.status_delete
-      if (
-        !idKategori ||
-        !namaInput ||
-        !tingkatanInput ||
-        bobotPointInput === undefined ||
-        statusDeleteInput === undefined
-      ) {
+      if (isNaN(idNumber)) {
         return {
           status: 400,
-          message: "Semua field wajib diisi",
+          message: "ID pelanggaran tidak valid",
         }
       }
+
+      if (!body || Object.keys(body).length === 0) {
+        return {
+          status: 400,
+          message: "Minimal satu field harus diisi untuk diperbarui",
+        }
+      }
+
       const existingData = await PelanggaranService.getById(idNumber)
       if (!existingData) {
         return {
@@ -126,29 +123,54 @@ export const PelanggaranController = {
           message: "Data pelanggaran tidak ditemukan",
         }
       }
-      if (
-        namaInput.toLowerCase() !== existingData.nama_pelanggaran.toLowerCase()
-      ) {
-        const allPelanggaran = await PelanggaranService.getAll()
-        const isNameTaken = allPelanggaran.some(
-          (p: any) =>
-            p.nama_pelanggaran.toLowerCase() === namaInput.toLowerCase() &&
-            p.id_pelanggaran !== idNumber,
-        )
-        if (isNameTaken) {
+
+      const dataToUpdate: any = {}
+      if (body.id_kategori_pelanggaran !== undefined) {
+        dataToUpdate.id_kategori_pelanggaran = Number(body.id_kategori_pelanggaran)
+      }
+
+      if (body.nama_pelanggaran !== undefined) {
+        const namaInput = body.nama_pelanggaran.trim()
+        if (!namaInput) {
           return {
-            status: 409,
-            message: `Nama pelanggaran '${namaInput}' sudah digunakan oleh data lain`,
+            status: 400,
+            message: "Nama pelanggaran tidak boleh kosong",
           }
         }
+        if (
+          namaInput.toLowerCase() !== existingData.nama_pelanggaran.toLowerCase()
+        ) {
+          const allPelanggaran = await PelanggaranService.getAll()
+          const isNameTaken = allPelanggaran.some(
+            (p: any) =>
+              p.nama_pelanggaran.toLowerCase() === namaInput.toLowerCase() &&
+              p.id_pelanggaran !== idNumber,
+          )
+          if (isNameTaken) {
+            return {
+              status: 409,
+              message: `Nama pelanggaran '${namaInput}' sudah digunakan oleh data lain`,
+            }
+          }
+        }
+        dataToUpdate.nama_pelanggaran = namaInput
       }
+
+      if (body.tingkatan !== undefined) {
+        dataToUpdate.tingkatan = body.tingkatan.trim()
+      }
+
+      if (body.bobot_point !== undefined) {
+        dataToUpdate.bobot_point = Number(body.bobot_point)
+      }
+
+      if (body.status_delete !== undefined) {
+        dataToUpdate.status_delete = Number(body.status_delete)
+      }
+
       const pelanggaran = await PelanggaranService.update(
         idNumber,
-        Number(idKategori),
-        namaInput,
-        tingkatanInput,
-        Number(bobotPointInput),
-        Number(statusDeleteInput),
+        dataToUpdate,
       )
       return {
         status: 200,

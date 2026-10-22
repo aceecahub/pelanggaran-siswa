@@ -1,15 +1,29 @@
 import { JurusanService } from "../service/JurusanService"
 
+const parseId = (value: unknown): number | null => {
+  if (
+    (typeof value !== "string" && typeof value !== "number") ||
+    String(value).trim() === ""
+  ) {
+    return null
+  }
+
+  const id = Number(value)
+
+  return Number.isSafeInteger(id) && id > 0 ? id : null
+}
+
 export const JurusanController = {
   getAll: async () => {
     try {
       const jurusan = await JurusanService.getAll()
+
       return {
         status: 200,
         message: "Data jurusan berhasil diambil",
         data: jurusan,
       }
-    } catch (error) {
+    } catch {
       return {
         status: 500,
         message: "Terjadi kesalahan pada server",
@@ -19,28 +33,30 @@ export const JurusanController = {
 
   getById: async ({ params }: any) => {
     try {
-      if (!params?.id_jurusan) {
+      const id = parseId(params?.id_jurusan)
+
+      if (id === null) {
         return {
           status: 400,
-          message: "ID jurusan wajib diisi",
+          message: "ID jurusan harus berupa angka positif",
         }
       }
 
-      const idInput = params.id_jurusan.trim()
-      const jurusan = await JurusanService.getById(idInput)
-      
+      const jurusan = await JurusanService.getById(id)
+
       if (!jurusan) {
         return {
           status: 404,
           message: "Data jurusan tidak ditemukan",
         }
       }
+
       return {
         status: 200,
         message: "Data jurusan berhasil ditemukan",
         data: jurusan,
       }
-    } catch (error) {
+    } catch {
       return {
         status: 500,
         message: "Terjadi kesalahan pada server",
@@ -50,34 +66,28 @@ export const JurusanController = {
 
   create: async ({ body }: any) => {
     try {
-      const idInput = body?.id_jurusan?.trim()
-      const namaInput = body?.nama_jurusan?.trim()
+      const namaInput =
+        typeof body?.nama_jurusan === "string"
+          ? body.nama_jurusan.trim()
+          : ""
 
-      if (!idInput || !namaInput) {
+      const kdInput =
+        typeof body?.kd_jurusan === "string"
+          ? body.kd_jurusan.trim()
+          : ""
+
+      if (!namaInput || !kdInput) {
         return {
           status: 400,
-          message: "ID jurusan dan nama jurusan tidak boleh kosong",
-        }
-      }
-
-      if (idInput.length > 10) {
-        return {
-          status: 400,
-          message: "ID jurusan tidak boleh lebih dari 10 karakter",
-        }
-      }
-
-      const existingData = await JurusanService.getById(idInput)
-      if (existingData) {
-        return {
-          status: 409,
-          message: `ID Jurusan '${idInput}' sudah terdaftar`,
+          message: "Nama dan kode jurusan tidak boleh kosong",
         }
       }
 
       const allJurusan = await JurusanService.getAll()
+
       const isNameExist = allJurusan.some(
-        (j: any) => j.nama_jurusan.toLowerCase() === namaInput.toLowerCase()
+        (j: any) =>
+          j.nama_jurusan.toLowerCase() === namaInput.toLowerCase()
       )
 
       if (isNameExist) {
@@ -87,7 +97,8 @@ export const JurusanController = {
         }
       }
 
-      const jurusan = await JurusanService.create(idInput, namaInput)
+      const jurusan = await JurusanService.create(kdInput, namaInput)
+
       return {
         status: 201,
         message: "Data jurusan berhasil ditambahkan",
@@ -103,25 +114,24 @@ export const JurusanController = {
 
   update: async ({ params, body }: any) => {
     try {
-      if (!params?.id_jurusan) {
+      const id = parseId(params?.id_jurusan)
+
+      if (id === null) {
         return {
           status: 400,
-          message: "ID jurusan wajib diisi",
+          message: "ID jurusan harus berupa angka positif",
         }
       }
 
-      const idParam = params.id_jurusan.trim()
-      const namaInput = body?.nama_jurusan?.trim()
-      const statusDeleteInput = body?.status_delete
-
-      if (!namaInput || statusDeleteInput === undefined) {
+      if (!body || Object.keys(body).length === 0) {
         return {
           status: 400,
-          message: "Nama jurusan dan status_delete wajib diisi",
+          message: "Minimal satu field harus diisi untuk diperbarui",
         }
       }
 
-      const existingData = await JurusanService.getById(idParam)
+      const existingData = await JurusanService.getById(id)
+
       if (!existingData) {
         return {
           status: 404,
@@ -129,28 +139,121 @@ export const JurusanController = {
         }
       }
 
-      if (namaInput.toLowerCase() !== existingData.nama_jurusan.toLowerCase()) {
-        const allJurusan = await JurusanService.getAll()
-        const isNameTaken = allJurusan.some(
-          (j: any) =>
-            j.nama_jurusan.toLowerCase() === namaInput.toLowerCase() &&
-            j.id_jurusan !== idParam
-        )
-        if (isNameTaken) {
+      const dataToUpdate: Record<string, any> = {}
+
+      if (body.kd_jurusan !== undefined) {
+        if (typeof body.kd_jurusan !== "string") {
           return {
-            status: 409,
-            message: `Nama jurusan '${namaInput}' sudah digunakan oleh data lain`,
+            status: 400,
+            message: "Kode jurusan harus berupa teks",
           }
+        }
+
+        const kdInput = body.kd_jurusan.trim()
+
+        if (!kdInput) {
+          return {
+            status: 400,
+            message: "Kode jurusan tidak boleh kosong",
+          }
+        }
+
+        if (
+          kdInput.toLowerCase() !==
+          (existingData.kd_jurusan || "").toLowerCase()
+        ) {
+          const allJurusan = await JurusanService.getAll()
+
+          const isKdTaken = allJurusan.some(
+            (j: any) =>
+              (j.kd_jurusan || "").toLowerCase() === kdInput.toLowerCase() &&
+              j.id_jurusan !== id
+          )
+
+          if (isKdTaken) {
+            return {
+              status: 409,
+              message: `Kode jurusan '${kdInput}' sudah digunakan oleh data lain`,
+            }
+          }
+        }
+
+        dataToUpdate.kd_jurusan = kdInput
+      }
+
+      if (body.nama_jurusan !== undefined) {
+        if (typeof body.nama_jurusan !== "string") {
+          return {
+            status: 400,
+            message: "Nama jurusan harus berupa teks",
+          }
+        }
+
+        const namaInput = body.nama_jurusan.trim()
+
+        if (!namaInput) {
+          return {
+            status: 400,
+            message: "Nama jurusan tidak boleh kosong",
+          }
+        }
+
+        if (
+          namaInput.toLowerCase() !==
+          existingData.nama_jurusan.toLowerCase()
+        ) {
+          const allJurusan = await JurusanService.getAll()
+
+          const isNameTaken = allJurusan.some(
+            (j: any) =>
+              j.nama_jurusan.toLowerCase() === namaInput.toLowerCase() &&
+              j.id_jurusan !== id
+          )
+
+          if (isNameTaken) {
+            return {
+              status: 409,
+              message: `Nama jurusan '${namaInput}' sudah digunakan oleh data lain`,
+            }
+          }
+        }
+
+        dataToUpdate.nama_jurusan = namaInput
+      }
+
+      if (body.status !== undefined) {
+        if (typeof body.status !== "string" || !body.status.trim()) {
+          return {
+            status: 400,
+            message: "Status tidak boleh kosong",
+          }
+        }
+
+        dataToUpdate.status = body.status.trim()
+      }
+
+      if (body.status_delete !== undefined) {
+        const statusDelete = Number(body.status_delete)
+
+        if (![0, 1].includes(statusDelete)) {
+          return {
+            status: 400,
+            message: "status_delete hanya boleh bernilai 0 atau 1",
+          }
+        }
+
+        dataToUpdate.status_delete = statusDelete
+      }
+
+      if (Object.keys(dataToUpdate).length === 0) {
+        return {
+          status: 400,
+          message: "Tidak ada field valid untuk diperbarui",
         }
       }
 
-      const jurusan = await JurusanService.update(
-        idParam,
-        namaInput,
-        status,
-        Number(statusDeleteInput),
-      )
-      
+      const jurusan = await JurusanService.update(id, dataToUpdate)
+
       return {
         status: 200,
         message: "Data jurusan berhasil diperbarui",
@@ -166,16 +269,17 @@ export const JurusanController = {
 
   delete: async ({ params }: any) => {
     try {
-      if (!params?.id_jurusan) {
+      const id = parseId(params?.id_jurusan)
+
+      if (id === null) {
         return {
           status: 400,
-          message: "ID jurusan wajib diisi",
+          message: "ID jurusan harus berupa angka positif",
         }
       }
 
-      const idParam = params.id_jurusan.trim()
-      const existingData = await JurusanService.getById(idParam)
-      
+      const existingData = await JurusanService.getById(id)
+
       if (!existingData) {
         return {
           status: 404,
@@ -183,7 +287,8 @@ export const JurusanController = {
         }
       }
 
-      const jurusan = await JurusanService.delete(idParam)
+      const jurusan = await JurusanService.delete(id)
+
       return {
         status: 200,
         message: "Data jurusan berhasil dihapus",

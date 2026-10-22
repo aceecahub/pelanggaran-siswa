@@ -95,13 +95,17 @@ export const KategoriPelanggaranController = {
       }
 
       const idNumber = Number(params.id_kategori_pelanggaran)
-      const namaInput = body?.nama?.trim()
-      const statusDeleteInput = body?.status_delete
-
-      if (!namaInput || statusDeleteInput === undefined) {
+      if (isNaN(idNumber)) {
         return {
           status: 400,
-          message: "Nama kategori pelanggaran dan status_delete wajib diisi",
+          message: "ID kategori pelanggaran tidak valid",
+        }
+      }
+
+      if (!body || Object.keys(body).length === 0) {
+        return {
+          status: 400,
+          message: "Minimal satu field harus diisi untuk diperbarui",
         }
       }
 
@@ -113,25 +117,39 @@ export const KategoriPelanggaranController = {
         }
       }
 
-      if (namaInput.toLowerCase() !== existingData.nama.toLowerCase()) {
-        const allKategori = await KategoriPelanggaranService.getAll()
-        const isNameTaken = allKategori.some(
-          (k: any) =>
-            k.nama.toLowerCase() === namaInput.toLowerCase() &&
-            k.id_kategori_pelanggaran !== idNumber,
-        )
-        if (isNameTaken) {
+      const dataToUpdate: any = {}
+      if (body.nama !== undefined) {
+        const namaInput = body.nama.trim()
+        if (!namaInput) {
           return {
-            status: 409,
-            message: `Nama kategori '${namaInput}' sudah digunakan oleh data lain`,
+            status: 400,
+            message: "Nama kategori pelanggaran tidak boleh kosong",
           }
         }
+        if (namaInput.toLowerCase() !== existingData.nama.toLowerCase()) {
+          const allKategori = await KategoriPelanggaranService.getAll()
+          const isNameTaken = allKategori.some(
+            (k: any) =>
+              k.nama.toLowerCase() === namaInput.toLowerCase() &&
+              k.id_kategori_pelanggaran !== idNumber,
+          )
+          if (isNameTaken) {
+            return {
+              status: 409,
+              message: `Nama kategori '${namaInput}' sudah digunakan oleh data lain`,
+            }
+          }
+        }
+        dataToUpdate.nama = namaInput
+      }
+
+      if (body.status_delete !== undefined) {
+        dataToUpdate.status_delete = Number(body.status_delete)
       }
 
       const kategori = await KategoriPelanggaranService.update(
         idNumber,
-        namaInput,
-        Number(statusDeleteInput),
+        dataToUpdate,
       )
 
       return {

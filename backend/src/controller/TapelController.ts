@@ -89,59 +89,77 @@ export const TapelController = {
         return {
           status: 400,
           message: "ID tahun ajaran wajib diisi",
-        }
+        };
       }
 
-      const namaInput = body?.nama?.trim()
-      const statusInput = body?.status?.trim()
-      const statusDeleteInput = body?.status_delete
-
-      if (!namaInput || !statusInput || statusDeleteInput === undefined) {
+      const idNumber = Number(params.id_tahun_ajaran);
+      if (isNaN(idNumber)) {
         return {
           status: 400,
-          message: "Nama, status, dan status_delete wajib diisi",
-        }
+          message: "ID tahun ajaran tidak valid",
+        };
       }
 
-      const existingData = await TapelService.getById(params.id_tahun_ajaran)
+      if (!body || Object.keys(body).length === 0) {
+        return {
+          status: 400,
+          message: "Minimal satu field harus diisi untuk diperbarui",
+        };
+      }
+
+      const existingData = await TapelService.getById(idNumber);
       if (!existingData) {
         return {
           status: 404,
           message: "Data tahun ajaran tidak ditemukan",
-        }
+        };
       }
 
-      if (namaInput.toLowerCase() !== existingData.nama.toLowerCase()) {
-        const allTapel = await TapelService.getAll()
-        const isNameTaken = allTapel.some(
-          (t: any) =>
-            t.nama.toLowerCase() === namaInput.toLowerCase() &&
-            t.id_tahun_ajaran !== params.id_tahun_ajaran,
-        )
-        if (isNameTaken) {
+      const dataToUpdate: any = {};
+      if (body.nama !== undefined) {
+        const namaInput = body.nama.trim();
+        if (!namaInput) {
           return {
-            status: 409,
-            message: `Nama tahun ajaran '${namaInput}' sudah digunakan oleh data lain`,
+            status: 400,
+            message: "Nama tahun ajaran tidak boleh kosong",
+          };
+        }
+        if (namaInput.toLowerCase() !== existingData.nama.toLowerCase()) {
+          const allTapel = await TapelService.getAll();
+          const isNameTaken = allTapel.some(
+            (t: any) =>
+              t.nama.toLowerCase() === namaInput.toLowerCase() &&
+              t.id_tahun_ajaran !== idNumber,
+          );
+          if (isNameTaken) {
+            return {
+              status: 409,
+              message: `Nama tahun ajaran '${namaInput}' sudah digunakan oleh data lain`,
+            };
           }
         }
+        dataToUpdate.nama = namaInput;
       }
 
-      const tapel = await TapelService.update(
-        params.id_tahun_ajaran,
-        namaInput,
-        statusInput,
-        statusDeleteInput,
-      )
+      if (body.status !== undefined) {
+        dataToUpdate.status = body.status.trim();
+      }
+
+      if (body.status_delete !== undefined) {
+        dataToUpdate.status_delete = Number(body.status_delete);
+      }
+
+      const tapel = await TapelService.update(idNumber, dataToUpdate);
       return {
         status: 200,
         message: "Data tahun ajaran berhasil diperbarui",
         data: tapel,
-      }
+      };
     } catch (error: any) {
       return {
         status: 400,
         message: error.message || "Data tahun ajaran gagal diperbarui",
-      }
+      };
     }
   },
 
@@ -151,27 +169,36 @@ export const TapelController = {
         return {
           status: 400,
           message: "ID tahun ajaran wajib diisi",
-        }
+        };
       }
 
-      const existingData = await TapelService.getById(params.id_tahun_ajaran)
+      const idNumber = Number(params.id_tahun_ajaran);
+      if (isNaN(idNumber)) {
+        return {
+          status: 400,
+          message: "ID tahun ajaran tidak valid",
+        };
+      }
+
+      const existingData = await TapelService.getById(idNumber);
       if (!existingData) {
         return {
           status: 404,
           message: "Data tahun ajaran tidak ditemukan",
-        }
+        };
       }
 
-      await TapelService.delete(params.id_tahun_ajaran)
+      const tapel = await TapelService.delete(idNumber);
       return {
         status: 200,
         message: "Data tahun ajaran berhasil dihapus",
-      }
+        data: tapel,
+      };
     } catch (error: any) {
       return {
         status: 500,
         message: "Terjadi kesalahan pada server",
-      }
+      };
     }
   },
 }

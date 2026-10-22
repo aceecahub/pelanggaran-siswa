@@ -2,12 +2,17 @@ import { Elysia, t } from "elysia";
 import { KategoriPelanggaranController } from "../controller/KategoriPelanggaranController";
 
 const KategoriPelanggaranParams = t.Object({
-  id_kategori_pelanggaran: t.Number(),
+  id_kategori_pelanggaran: t.Numeric(),
 });
 
 const KategoriPelanggaranBody = t.Object({
   nama: t.String(),
-  status_delete: t.Number(),
+  status_delete: t.Optional(t.Number()),
+});
+
+const KategoriPelanggaranUpdateBody = t.Object({
+  nama: t.Optional(t.String()),
+  status_delete: t.Optional(t.Number()),
 });
 
 export const KategoriPelanggaranRoutes = new Elysia({
@@ -22,7 +27,7 @@ export const KategoriPelanggaranRoutes = new Elysia({
   })
   .patch("/:id_kategori_pelanggaran", KategoriPelanggaranController.update, {
     params: KategoriPelanggaranParams,
-    body: KategoriPelanggaranBody,
+    body: KategoriPelanggaranUpdateBody,
   })
   .delete("/:id_kategori_pelanggaran", KategoriPelanggaranController.delete, {
     params: KategoriPelanggaranParams,

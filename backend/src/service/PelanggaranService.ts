@@ -2,11 +2,15 @@ import prisma from "../../prisma/client"
 
 export const PelanggaranService = {
   getAll: async () => {
-    return await prisma.pelanggaran.findMany()
+    return await prisma.pelanggaran.findMany({
+      where: {
+        status_delete: 0,
+      },
+    })
   },
 
   getById: async (id_pelanggaran: number) => {
-    return await prisma.pelanggaran.findUnique({
+    return await prisma.pelanggaran.findFirst({
       where: {
         id_pelanggaran: id_pelanggaran,
       },
@@ -25,36 +29,36 @@ export const PelanggaranService = {
         nama_pelanggaran: nama_pelanggaran,
         tingkatan: tingkatan,
         bobot_point: bobot_point,
+        status_delete: 0,
       },
     })
   },
 
   update: async (
     id_pelanggaran: number,
-    id_kategori_pelanggaran: number,
-    nama_pelanggaran: string,
-    tingkatan: string,
-    bobot_point: number,
-    status_delete: number,
+    data: {
+      id_kategori_pelanggaran?: number
+      nama_pelanggaran?: string
+      tingkatan?: string
+      bobot_point?: number
+      status_delete?: number
+    },
   ) => {
     return await prisma.pelanggaran.update({
       where: {
         id_pelanggaran: id_pelanggaran,
       },
-      data: {
-        id_kategori_pelanggaran: id_kategori_pelanggaran,
-        nama_pelanggaran: nama_pelanggaran,
-        tingkatan: tingkatan,
-        bobot_point: bobot_point,
-        status_delete: status_delete,
-      },
+      data,
     })
   },
 
   delete: async (id_pelanggaran: number) => {
-    return await prisma.pelanggaran.delete({
+    return await prisma.pelanggaran.update({
       where: {
         id_pelanggaran: id_pelanggaran,
+      },
+      data: {
+        status_delete: 1,
       },
     })
   },
